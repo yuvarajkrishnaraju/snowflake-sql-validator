@@ -1,6 +1,6 @@
 {
   "name": "snowflake-sql-validator",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Snowflake SQL validator for React applications",
   "license": "ISC",
   "author": "",
