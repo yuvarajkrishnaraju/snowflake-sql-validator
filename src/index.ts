@@ -25,9 +25,9 @@ export function validateSnowflakeSQL(sql: string): ValidationResult {
     return {
       isValid: false,
       errors: parseErrors.map((err) => ({
-        line: err.startLine,
-        column: err.startColumn,
-        message: err.message
+        ...err,
+        severity: 'error' as const,
+        suggestions: ['Check the SQL syntax and ensure all statements are properly terminated.']
       }))
     };
   }
@@ -39,9 +39,13 @@ export function validateSnowflakeSQL(sql: string): ValidationResult {
       isValid: false,
       errors: [
         {
-          line: 1,
-          column: 1,
-          message: 'Failed to generate parse tree'
+          startLine: 1,
+          endLine: 1,
+          startColumn: 1,
+          endColumn: 1,
+          message: 'Failed to generate parse tree',
+          severity: 'error' as const,
+          suggestions: ['Check if the SQL input is valid and try parsing again.']
         }
       ]
     };

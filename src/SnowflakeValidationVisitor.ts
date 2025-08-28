@@ -3,11 +3,11 @@ import { TerminalNode } from 'antlr4ts/tree/TerminalNode';
 
 // Placeholder imports for generated ANTLR4 files
 import { SnowflakeVisitor } from './parser/snowflake/SnowflakeVisitor';
+import { ParseError } from './SnowflakeSQL';
 
-export interface ValidationError {
-  line: number;
-  column: number;
-  message: string;
+export interface ValidationError extends ParseError {
+  severity: 'error' | 'warning' | 'info';
+  suggestions: string[];
 }
 
 export class SnowflakeValidationVisitor extends SnowflakeVisitor<ValidationError[]> {
@@ -42,9 +42,13 @@ export class SnowflakeValidationVisitor extends SnowflakeVisitor<ValidationError
       // For now, let's just flag it if it matches the pattern.
       const symbol = node.symbol;
       this.errors.push({
-        line: symbol.line,
-        column: symbol.charPositionInLine,
-        message: `Potentially invalid or unrecognized cast syntax: '${text}'. Ensure correct Snowflake JSON path access (e.g., OBJECT:field::TYPE).`
+        startLine: symbol.line,
+        endLine: symbol.line,
+        startColumn: symbol.charPositionInLine,
+        endColumn: symbol.charPositionInLine,
+        message: `Potentially invalid or unrecognized cast syntax: '${text}'. Ensure correct Snowflake JSON path access (e.g., OBJECT:field::TYPE).`,
+        severity: 'warning',
+        suggestions: ['Review the JSON path syntax for this identifier.']
       });
     }
     return super.visitTerminal(node);

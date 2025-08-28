@@ -176,7 +176,9 @@ LIMIT 11;`;
             {
               line: 1,
               column: 10,
-              message: 'Validation error from visitor'
+              message: 'Validation error from visitor',
+              severity: 'warning',
+              suggestions: ['Check the syntax and try again.']
             }
           ];
         }
@@ -670,8 +672,8 @@ LIMIT 11;`;
 
       // Check that parse errors are properly mapped
       const firstError = result.errors[0];
-      expect(typeof firstError.line).toBe('number');
-      expect(typeof firstError.column).toBe('number');
+      expect(typeof firstError.startLine).toBe('number');
+      expect(typeof firstError.startColumn).toBe('number');
       expect(typeof firstError.message).toBe('string');
     });
 
