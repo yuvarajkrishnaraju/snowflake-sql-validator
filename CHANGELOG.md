@@ -1,3 +1,13 @@
+# 1.0.1 (2025-08-28)
+
+
+### Features
+
+* add comprehensive and coverage tests for Snowflake SQL validation ([ec1197a](https://github.com/yuvarajkrishnaraju/snowflake-sql-validator/commit/ec1197aabefda7172e970d66b684e3a1c5e7fd8a))
+* add SnowflakeVisitor class and TypeScript configuration ([4998f7d](https://github.com/yuvarajkrishnaraju/snowflake-sql-validator/commit/4998f7d47a3c759050903cceb644c4c4fe1e8b37))
+
+
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
