@@ -16,6 +16,140 @@ A TypeScript library for validating Snowflake SQL queries. This package provides
 npm install snowflake-sql-validator
 ```
 
+### Peer Dependencies for React.js
+
+When using this library in React applications, you may need to install additional peer dependencies depending on your build configuration:
+
+```bash
+# For React applications using webpack, Vite, or similar bundlers
+npm install process util assert
+
+# Or if you prefer yarn
+yarn add process util assert
+```
+
+**Note**: These peer dependencies are marked as optional, so your application will work without them, but you may see warnings during installation. Installing them ensures compatibility across different build environments.
+
+### Why Peer Dependencies?
+
+This library uses Node.js built-in modules (`process`, `util`, `assert`) that are not automatically available in browser environments. React applications typically need these polyfilled or provided by the build system:
+
+- **`process`**: Provides process information and environment variables
+- **`util`**: Utility functions for formatting and debugging
+- **`assert`**: Assertion testing for validation logic
+
+### Build Configuration
+
+If you're using a bundler like webpack, you may need to add these polyfills to your configuration:
+
+```javascript
+// webpack.config.js
+const webpack = require('webpack');
+
+module.exports = {
+  // ... other config
+  resolve: {
+    fallback: {
+      "process": require.resolve("process/browser"),
+      "util": require.resolve("util/"),
+      "assert": require.resolve("assert/")
+    }
+  },
+  plugins: [
+    new webpack.ProvidePlugin({
+      process: 'process/browser',
+    }),
+  ]
+};
+```
+
+For Vite users, you can use the `vite-plugin-node-polyfills`:
+
+```bash
+npm install -D vite-plugin-node-polyfills
+```
+
+```javascript
+// vite.config.js
+import { defineConfig } from 'vite';
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
+
+export default defineConfig({
+  plugins: [
+    nodePolyfills({
+      include: ['process', 'util', 'assert']
+    })
+  ]
+});
+```
+
+### Peer Dependencies for React.js
+
+When using this library in React applications, you may need to install additional peer dependencies depending on your build configuration:
+
+```bash
+# For React applications using webpack, Vite, or similar bundlers
+npm install process util assert
+
+# Or if you prefer yarn
+yarn add process util assert
+```
+
+**Note**: These peer dependencies are marked as optional, so your application will work without them, but you may see warnings during installation. Installing them ensures compatibility across different build environments.
+
+### Why Peer Dependencies?
+
+This library uses Node.js built-in modules (`process`, `util`, `assert`) that are not automatically available in browser environments. React applications typically need these polyfilled or provided by the build system:
+
+- **`process`**: Provides process information and environment variables
+- **`util`**: Utility functions for formatting and debugging
+- **`assert`**: Assertion testing for validation logic
+
+### Build Configuration
+
+If you're using a bundler like webpack, you may need to add these polyfills to your configuration:
+
+```javascript
+// webpack.config.js
+const webpack = require('webpack');
+
+module.exports = {
+  // ... other config
+  resolve: {
+    fallback: {
+      "process": require.resolve("process/browser"),
+      "util": require.resolve("util/"),
+      "assert": require.resolve("assert/")
+    }
+  },
+  plugins: [
+    new webpack.ProvidePlugin({
+      process: 'process/browser',
+    }),
+  ]
+};
+```
+
+For Vite users, you can use the `vite-plugin-node-polyfills`:
+
+```bash
+npm install -D vite-plugin-node-polyfills
+```
+
+```javascript
+// vite.config.js
+import { defineConfig } from 'vite';
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
+
+export default defineConfig({
+  plugins: [
+    nodePolyfills({
+      include: ['process', 'util', 'assert']
+    })
+  ]
+});
+```
+
 ## Usage
 
 ### Basic Validation
@@ -215,6 +349,18 @@ Areas that may need attention:
 
 ## Development
 
+### Release Management
+
+For detailed information about the release process, see [RELEASE.md](./RELEASE.md).
+
+The package includes comprehensive release management scripts:
+
+- **Version Management**: Automated version bumping with git tagging
+- **Release Process**: One-command releases with automatic publishing
+- **Changelog Generation**: Automatic changelog updates using conventional commits
+- **Quality Assurance**: Pre-release checks and pre-commit hooks
+- **Rollback Support**: Easy rollback process for problematic releases
+
 ### Building the Package
 
 ```bash
@@ -236,6 +382,40 @@ npm test
 
 # Run tests in watch mode
 npm run test:watch
+```
+
+### Release Management
+
+```bash
+# Version bumping (patch, minor, major)
+npm run version:patch    # 1.0.0 → 1.0.1
+npm run version:minor    # 1.0.0 → 1.1.0
+npm run version:major    # 1.0.0 → 2.0.0
+
+# Complete release process
+npm run release:patch    # Bump version + publish
+npm run release:minor    # Bump version + publish
+npm run release:major    # Bump version + publish
+
+# Preview release (beta)
+npm run release:preview
+
+# Generate changelog
+npm run changelog
+```
+
+### Code Quality
+
+```bash
+# Linting
+npm run lint
+npm run lint:fix
+
+# Type checking
+npm run type-check
+
+# All quality checks
+npm run check-all
 ```
 
 ### Project Structure
