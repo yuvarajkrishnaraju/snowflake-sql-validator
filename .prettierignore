@@ -1,0 +1,11 @@
+node_modules/
+build/
+public/
+.vscode
+src/appCentralBrain
+src/appSoloEmail
+src/appThreeFinance
+log/
+coverage/
+examples/
+dist/
