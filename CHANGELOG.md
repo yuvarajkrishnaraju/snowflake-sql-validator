@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Performance and stress tests
 - Coverage tests for 100% test coverage
 - Version upgrade scripts for release management
-- Peer dependencies for React.js compatibility
+- Required peer dependencies for React.js compatibility
 - Conventional changelog generation
 - ESLint configuration and linting scripts
 - Pre-commit hooks for code quality

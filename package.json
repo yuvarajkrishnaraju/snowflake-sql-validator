@@ -1,6 +1,6 @@
 {
   "name": "snowflake-sql-validator",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Snowflake SQL validator for React applications",
   "license": "ISC",
   "author": "",
@@ -55,13 +55,13 @@
   },
   "peerDependenciesMeta": {
     "process": {
-      "optional": true
+      "optional": false
     },
     "util": {
-      "optional": true
+      "optional": false
     },
     "assert": {
-      "optional": true
+      "optional": false
     }
   },
   "devDependencies": {

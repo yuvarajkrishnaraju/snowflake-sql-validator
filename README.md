@@ -18,7 +18,7 @@ npm install snowflake-sql-validator
 
 ### Peer Dependencies for React.js
 
-When using this library in React applications, you may need to install additional peer dependencies depending on your build configuration:
+When using this library in React applications, you **must** install these peer dependencies for the library to work properly:
 
 ```bash
 # For React applications using webpack, Vite, or similar bundlers
@@ -28,74 +28,7 @@ npm install process util assert
 yarn add process util assert
 ```
 
-**Note**: These peer dependencies are marked as optional, so your application will work without them, but you may see warnings during installation. Installing them ensures compatibility across different build environments.
-
-### Why Peer Dependencies?
-
-This library uses Node.js built-in modules (`process`, `util`, `assert`) that are not automatically available in browser environments. React applications typically need these polyfilled or provided by the build system:
-
-- **`process`**: Provides process information and environment variables
-- **`util`**: Utility functions for formatting and debugging
-- **`assert`**: Assertion testing for validation logic
-
-### Build Configuration
-
-If you're using a bundler like webpack, you may need to add these polyfills to your configuration:
-
-```javascript
-// webpack.config.js
-const webpack = require('webpack');
-
-module.exports = {
-  // ... other config
-  resolve: {
-    fallback: {
-      "process": require.resolve("process/browser"),
-      "util": require.resolve("util/"),
-      "assert": require.resolve("assert/")
-    }
-  },
-  plugins: [
-    new webpack.ProvidePlugin({
-      process: 'process/browser',
-    }),
-  ]
-};
-```
-
-For Vite users, you can use the `vite-plugin-node-polyfills`:
-
-```bash
-npm install -D vite-plugin-node-polyfills
-```
-
-```javascript
-// vite.config.js
-import { defineConfig } from 'vite';
-import { nodePolyfills } from 'vite-plugin-node-polyfills';
-
-export default defineConfig({
-  plugins: [
-    nodePolyfills({
-      include: ['process', 'util', 'assert']
-    })
-  ]
-});
-```
-
-### Peer Dependencies for React.js
-
-When using this library in React applications, you may need to install additional peer dependencies depending on your build configuration:
-
-```bash
-# For React applications using webpack, Vite, or similar bundlers
-npm install process util assert
-
-# Or if you prefer yarn
-yarn add process util assert
-```
-
-**Note**: These peer dependencies are marked as optional, so your application will work without them, but you may see warnings during installation. Installing them ensures compatibility across different build environments.
+**Note**: These peer dependencies are **required** for React.js applications. The library will not work properly without them in browser environments.
 
 ### Why Peer Dependencies?
 
