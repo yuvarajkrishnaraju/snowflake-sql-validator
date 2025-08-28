@@ -16,10 +16,42 @@ describe('Snowflake SQL Validator', () => {
     });
 
     it('should validate complex INSERT INTO SELECT SQL', () => {
-      const sql = `INSERT INTO ODS.rewards_messaging_useracquisition_trafficattribution_surface_visited_attribution ( insert_timestamp, CLIENT_CONTEXT, SOURCE_SENT_AT_MILLIS, DATA, PARENT_MESSAGE_ID, REGION_ID, TYPE, CDN, ISSUER, SERVER_TIMESTAMP_MILLIS, SOURCE_TIMESTAMP_MILLIS, TRACE, SECURITY, SCHEMA_ID, GUID, GROUPS, MEMBER__ID, ACCOUNT_ID, ANONYMOUS_ID, SOURCE_CREATED_AT_MILLIS, SOURCE_TIME_ZONE, ID, VISIT_ID, INTEGRATIONS, SERVER_RECEIVED_AT_MILLIS, data_bridge_load_date, data_bridge_load_hour, FILE_NAME ) (SELECT current_timestamp AS insert_timestamp, source.CLIENT_CONTEXT AS CLIENT_CONTEXT, source.SOURCE_SENT_AT_MILLIS AS SOURCE_SENT_AT_MILLIS, source.DATA AS DATA, source.PARENT_MESSAGE_ID AS PARENT_MESSAGE_ID, source.REGION_ID AS REGION_ID, source.TYPE AS TYPE, source.CDN AS CDN, source.ISSUER AS ISSUER, source.SERVER_TIMESTAMP_MILLIS AS SERVER_TIMESTAMP_MILLIS, source.SOURCE_TIMESTAMP_MILLIS AS SOURCE_TIMESTAMP_MILLIS, source.TRACE AS TRACE, source.SECURITY AS SECURITY, source.SCHEMA_ID AS SCHEMA_ID, source.MEMBER:guid::string AS GUID, source.MEMBER:groups::string AS GROUPS, source.MEMBER:id::string AS MEMBER__ID, source.MEMBER:account_id::string AS ACCOUNT_ID, source.MEMBER:anonymous_id::string AS ANONYMOUS_ID, source.SOURCE_CREATED_AT_MILLIS AS SOURCE_CREATED_AT_MILLIS, source.SOURCE_TIME_ZONE AS SOURCE_TIME_ZONE, source.ID AS ID, source.VISIT_ID AS VISIT_ID, source.INTEGRATIONS AS INTEGRATIONS, source.SERVER_RECEIVED_AT_MILLIS AS SERVER_RECEIVED_AT_MILLIS, load_date AS data_bridge_load_date, load_hour AS data_bridge_load_hour, FILE_NAME AS file_name FROM DATA_BRIDGE.rewards_messaging_useracquisition_trafficattribution_surface_visited_attribution SOURCE LEFT JOIN (SELECT id, region_id FROM ODS.rewards_messaging_useracquisition_trafficattribution_surface_visited_attribution WHERE INSERT_TIMESTAMP >= DATEADD(DAY, -3, current_timestamp())) TARGET ON TARGET.ID = SOURCE.ID AND TARGET.region_id = SOURCE.region_id WHERE TARGET.ID IS NULL AND SOURCE.load_date >= DATEADD(DAY, -1, current_date()) );`;
+      const sql = `INSERT INTO test_table (
+    col1,
+    col2,
+    col3,
+    col4,
+    col5
+)
+SELECT
+    'value1' AS col1,
+    'value2' AS col2,
+    'value3' AS col3,
+    'value4' AS col4,
+    'value5' AS col5
+FROM source_table
+WHERE source_table.active = true`;
       const result = validateSnowflakeSQL(sql);
+      
+      // This simple INSERT SQL should pass validation
+      expect(result.isValid).toBe(true);
+      expect(result.errors.length).toBe(0);
+    });
 
-      // This complex SQL has parsing issues, so we expect it to fail
+    it('should validate Snowflake JSON path access syntax (parser limitation)', () => {
+      const sql = `SELECT 
+    source.MEMBER:guid::string AS GUID,
+    source.MEMBER:groups::string AS GROUPS,
+    source.MEMBER:id::string AS MEMBER_ID,
+    source.MEMBER:account_id::string AS ACCOUNT_ID,
+    source.MEMBER:anonymous_id::string AS ANONYMOUS_ID
+FROM json_table source
+WHERE source.MEMBER:active::boolean = true`;
+      const result = validateSnowflakeSQL(sql);
+      
+      // Note: While this syntax is valid Snowflake SQL, the current ANTLR parser
+      // doesn't support JSON path access syntax (MEMBER:guid::string).
+      // This test documents the limitation and ensures the parser handles it gracefully.
       expect(result.isValid).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
     });
