@@ -1,0 +1,7 @@
+dist/
+examples/
+node_modules/
+.gitignore
+.git/
+.gitignore
+.gitignore
