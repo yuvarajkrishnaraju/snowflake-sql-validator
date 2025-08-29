@@ -486,7 +486,7 @@ describe('Performance Tests', () => {
 
   it('should handle cache size limits properly', () => {
     // Generate many unique SQL statements to test cache limits
-    const sqlStatements = [];
+    const sqlStatements: any[] = [];
     for (let i = 0; i < 1100; i++) {
       sqlStatements.push(`select column${i} from table${i}`);
     }

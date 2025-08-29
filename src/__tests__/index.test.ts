@@ -476,15 +476,15 @@ LIMIT 11;`;
     // Additional tests for uncovered branches in SnowflakeSQL class
     it('should handle SQL normalization cache', () => {
       const parser = new SnowflakeSQL();
-      
+
       // Test cache functionality
       const sql1 = 'SELECT column1 FROM table1';
       const sql2 = 'SELECT column2 FROM table2';
-      
+
       // Parse multiple SQL statements to test cache
       parser.parse(sql1);
       parser.parse(sql2);
-      
+
       // Check cache stats
       const stats = SnowflakeSQL.getCacheStats();
       expect(typeof stats.size).toBe('number');
@@ -493,11 +493,11 @@ LIMIT 11;`;
 
     it('should handle performance statistics', () => {
       const parser = new SnowflakeSQL();
-      
+
       // Parse some SQL to generate performance data
       parser.parse('SELECT 1');
       parser.parse('SELECT * FROM table1');
-      
+
       // Check performance stats
       const stats = SnowflakeSQL.getPerformanceStats();
       expect(typeof stats.averageParseTime).toBe('number');
@@ -507,13 +507,13 @@ LIMIT 11;`;
 
     it('should handle cache clearing', () => {
       const parser = new SnowflakeSQL();
-      
+
       // Parse some SQL to fill cache
       parser.parse('SELECT 1');
-      
+
       // Clear cache
       SnowflakeSQL.clearCache();
-      
+
       // Check that cache is empty
       const stats = SnowflakeSQL.getCacheStats();
       expect(stats.size).toBe(0);
@@ -521,13 +521,13 @@ LIMIT 11;`;
 
     it('should handle performance statistics clearing', () => {
       const parser = new SnowflakeSQL();
-      
+
       // Parse some SQL to generate performance data
       parser.parse('SELECT 1');
-      
+
       // Clear performance stats
       SnowflakeSQL.clearPerformanceStats();
-      
+
       // Check that stats are cleared
       const stats = SnowflakeSQL.getPerformanceStats();
       expect(stats.totalParses).toBe(0);
@@ -857,7 +857,7 @@ LIMIT 11;`;
     });
 
     it('should handle SQL with balanced quotes', () => {
-      const sql = "SELECT * FROM table1 WHERE name = 'John' AND description = \"Test description\"";
+      const sql = 'SELECT * FROM table1 WHERE name = \'John\' AND description = "Test description"';
       const result = validateSnowflakeSQL(sql);
 
       expect(result.isValid).toBe(true);

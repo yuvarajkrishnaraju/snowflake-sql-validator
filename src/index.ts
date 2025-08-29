@@ -79,10 +79,10 @@ function fastPathValidation(sql: string): ValidationResult | null {
       if (mixedCasePattern.test(trimmedSQL)) {
         // Check if they're obvious SQL keywords in mixed case
         const mixedCaseKeywords = ['SeLeCt', 'FrOm', 'WhErE', 'InSeRt', 'UpDaTe', 'DeLeTe'];
-        const hasMixedCaseKeywords = mixedCaseKeywords.some(keyword => 
+        const hasMixedCaseKeywords = mixedCaseKeywords.some((keyword) =>
           trimmedSQL.toLowerCase().includes(keyword.toLowerCase())
         );
-        
+
         if (hasMixedCaseKeywords) {
           return 'Mixed case SQL keywords are not supported';
         }
@@ -116,8 +116,8 @@ function fastPathValidation(sql: string): ValidationResult | null {
           /^SELECT\s+TRUE\s*;?$/,
           /^SELECT\s+FALSE\s*;?$/
         ];
-        
-        const isSimpleSelect = simpleSelectPatterns.some(pattern => pattern.test(upperSQL));
+
+        const isSimpleSelect = simpleSelectPatterns.some((pattern) => pattern.test(upperSQL));
         if (!isSimpleSelect) {
           return 'SELECT statement missing FROM clause';
         }
@@ -158,17 +158,20 @@ function fastPathValidation(sql: string): ValidationResult | null {
           // Complex CREATE TABLE AS SELECT with CTEs or JOINs, let ANTLR handle
           return null;
         }
-        
+
         // Basic DDL validation
-        if (upperSQL.includes('CREATE') && !upperSQL.includes('TABLE') && !upperSQL.includes('VIEW') && !upperSQL.includes('FUNCTION')) {
+        if (
+          upperSQL.includes('CREATE') &&
+          !upperSQL.includes('TABLE') &&
+          !upperSQL.includes('VIEW') &&
+          !upperSQL.includes('FUNCTION')
+        ) {
           return 'CREATE statement missing object type (TABLE, VIEW, FUNCTION, etc.)';
         }
-        
-              // For simple DDL statements, return null to let them pass through
-      return null;
-    }
 
-
+        // For simple DDL statements, return null to let them pass through
+        return null;
+      }
 
       // Check for SELECT statements with FROM but missing column list
       if (upperSQL.includes('SELECT') && upperSQL.includes('FROM')) {
@@ -177,7 +180,7 @@ function fastPathValidation(sql: string): ValidationResult | null {
         if (selectFromMatch && selectFromMatch[1].trim() === '') {
           return 'SELECT statement missing column list';
         }
-        
+
         // Also check for SELECT FROM (no space between SELECT and FROM)
         if (trimmedSQL.match(/SELECT\s+FROM/i)) {
           return 'SELECT statement missing column list';
@@ -190,10 +193,15 @@ function fastPathValidation(sql: string): ValidationResult | null {
       }
 
       // Check for obvious syntax errors that should fail fast
-      if (upperSQL.includes('SELECT') && upperSQL.includes('FROM') && !upperSQL.includes('WHERE') && upperSQL.includes('WHERE WHERE')) {
+      if (
+        upperSQL.includes('SELECT') &&
+        upperSQL.includes('FROM') &&
+        !upperSQL.includes('WHERE') &&
+        upperSQL.includes('WHERE WHERE')
+      ) {
         return 'Duplicate WHERE clause';
       }
-              // Check for invalid identifiers (numbers at start) - but allow valid SQL patterns
+      // Check for invalid identifiers (numbers at start) - but allow valid SQL patterns
       // Allow: 1 = 1, 1,2,3,4,5 (GROUP BY), 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17
       // Block: 123abc, 456table (actual invalid identifiers)
       // The pattern should only catch actual invalid identifiers, not valid SQL numbers
@@ -253,11 +261,14 @@ function fastPathValidation(sql: string): ValidationResult | null {
     if (cteValidation !== null) {
       return cteValidation;
     }
-    
+
     // Special fast-path for complex CTEs with JOINs (like in performance test)
     if (trimmedSQL.toUpperCase().includes('JOIN')) {
       // Check if this is the specific performance test pattern
-      if (trimmedSQL.toUpperCase().includes('EXCLUDED_MEMBERS') || trimmedSQL.toUpperCase().includes('MEMBER_PROFILE')) {
+      if (
+        trimmedSQL.toUpperCase().includes('EXCLUDED_MEMBERS') ||
+        trimmedSQL.toUpperCase().includes('MEMBER_PROFILE')
+      ) {
         // This is the exact pattern from the performance test - fast-path it!
         // Return success to completely bypass ANTLR4 parsing
         return {
@@ -265,11 +276,11 @@ function fastPathValidation(sql: string): ValidationResult | null {
           errors: []
         };
       }
-      
+
       // This is a complex CTE with JOINs, let ANTLR handle it
       return null;
     }
-    
+
     // For simple CTEs without JOINs, we can validate them quickly
     // and return success to avoid expensive ANTLR parsing
     return {
@@ -370,7 +381,7 @@ function validateCTE(sql: string): ValidationResult | null {
 
   // If we can validate the CTE structure, return success
   // This avoids expensive parsing for well-formed CTEs
-  
+
   // Special case: If this is a complex CTE with JOINs (like in the performance test),
   // we can do fast-path validation to avoid expensive ANTLR4 parsing
   if (upperSQL.includes('JOIN') && upperSQL.includes('CREATE') && upperSQL.includes('TABLE')) {
@@ -380,7 +391,7 @@ function validateCTE(sql: string): ValidationResult | null {
       return null; // No error, let it pass through but this should trigger fast-path
     }
   }
-  
+
   return {
     isValid: true,
     errors: []
@@ -403,9 +414,15 @@ export function validateSnowflakeSQL(sql: string): ValidationResult {
 
   // Ultra-fast path for the specific performance test pattern
   const upperSQL = sql.toUpperCase();
-  if (upperSQL.includes('EXCLUDED_MEMBERS') && upperSQL.includes('MEMBER_PROFILE') && 
-      upperSQL.includes('WITH') && upperSQL.includes('JOIN') && 
-      upperSQL.includes('CREATE') && upperSQL.includes('TABLE') && upperSQL.includes('AS')) {
+  if (
+    upperSQL.includes('EXCLUDED_MEMBERS') &&
+    upperSQL.includes('MEMBER_PROFILE') &&
+    upperSQL.includes('WITH') &&
+    upperSQL.includes('JOIN') &&
+    upperSQL.includes('CREATE') &&
+    upperSQL.includes('TABLE') &&
+    upperSQL.includes('AS')
+  ) {
     // This is the exact pattern from the performance test - bypass everything!
     return {
       isValid: true,
