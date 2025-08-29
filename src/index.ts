@@ -201,6 +201,94 @@ function fastPathValidation(sql: string): ValidationResult | null {
       ) {
         return 'Duplicate WHERE clause';
       }
+
+      // Check for missing semicolons in SQL statements - only for multi-statement SQL
+      // Single statements without semicolons are often valid in many SQL contexts
+      if (trimmedSQL.includes(';') && !trimmedSQL.endsWith(';')) {
+        // If there are semicolons but the statement doesn't end with one, check if it should
+        const statements = trimmedSQL.split(';').filter((stmt) => stmt.trim().length > 0);
+        if (statements.length > 1) {
+          // Multiple statements detected, last one should end with semicolon
+          return 'Missing semicolon at end of SQL statement';
+        }
+      }
+
+      // Check for missing semicolons in multi-statement SQL
+      if (trimmedSQL.includes(';') && !trimmedSQL.endsWith(';')) {
+        // If there are semicolons but the statement doesn't end with one, check if it should
+        const statements = trimmedSQL.split(';').filter((stmt) => stmt.trim().length > 0);
+        if (statements.length > 1) {
+          // Multiple statements detected, last one should end with semicolon
+          return 'Missing semicolon at end of SQL statement';
+        }
+      }
+
+      // Check for missing spaces between identifiers and keywords (e.g., table_nameWHERE)
+      // Only match when there's no space between identifier and keyword
+      const missingSpacePatterns = [
+        /\w+WHERE\b/gi, // table_nameWHERE
+        /\w+FROM\b/gi, // table_nameFROM
+        /\w+SELECT\b/gi, // table_nameSELECT
+        /\w+INSERT\b/gi, // table_nameINSERT
+        /\w+UPDATE\b/gi, // table_nameUPDATE
+        /\w+DELETE\b/gi, // table_nameDELETE
+        /\w+CREATE\b/gi, // table_nameCREATE
+        /\w+ALTER\b/gi, // table_nameALTER
+        /\w+DROP\b/gi, // table_nameDROP
+        /\w+JOIN\b/gi, // table_nameJOIN
+        /\w+UNION\b/gi, // table_nameUNION
+        /\w+GROUP\b/gi, // table_nameGROUP
+        /\w+ORDER\b/gi, // table_nameORDER
+        /\w+HAVING\b/gi, // table_nameHAVING
+        /\w+SET\b/gi, // table_nameSET
+        /\w+AND\b/gi, // column_nameAND
+        /\w+OR\b/gi, // column_nameOR
+        /\w+IN\b/gi, // column_nameIN
+        /\w+IS\b/gi, // column_nameIS
+        /\w+AS\b/gi, // column_nameAS
+        /\w+ON\b/gi // table_nameON
+      ];
+
+      // Temporarily disabled missing space validation due to false positives
+      // TODO: Implement more accurate missing space detection
+      /*
+      // Check for very obvious missing space patterns that are common SQL errors
+      // Only catch the most obvious cases to avoid false positives
+      // Look for patterns like "table_nameWHERE" (no space between identifier and keyword)
+      const veryObviousMissingSpacePatterns = [
+        /(\w+)(WHERE|FROM|SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|JOIN|UNION|GROUP|ORDER|HAVING|SET)\b/gi
+      ];
+
+      for (const pattern of veryObviousMissingSpacePatterns) {
+        const matches = trimmedSQL.matchAll(pattern);
+        for (const match of matches) {
+          const identifier = match[1];
+          const keyword = match[2];
+          
+          // Skip if this is inside quoted identifiers (e.g., "TABLE_NAME")
+          const beforeMatch = trimmedSQL.substring(0, match.index);
+          const quotesBefore = (beforeMatch.match(/"/g) || []).length;
+          
+          // If we're inside quotes, skip this match
+          if (quotesBefore % 2 === 1) {
+            continue;
+          }
+          
+          // Only flag if this is clearly a missing space issue
+          // The pattern must be exactly "identifierkeyword" with no space
+          const exactPattern = new RegExp(`${identifier}${keyword}`, 'gi');
+          if (exactPattern.test(trimmedSQL)) {
+            // Additional check: make sure this isn't a valid identifier that happens to end with the keyword
+            // Only flag if the identifier is significantly longer than the keyword
+            if (identifier.length > keyword.length + 2) {
+              console.log('Missing space detected:', identifier, keyword, 'in SQL:', trimmedSQL);
+              return 'Missing space between identifier and keyword';
+            }
+          }
+        }
+      }
+      */
+
       // Check for invalid identifiers (numbers at start) - but allow valid SQL patterns
       // Allow: 1 = 1, 1,2,3,4,5 (GROUP BY), 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17
       // Block: 123abc, 456table (actual invalid identifiers)

@@ -1,9 +1,4 @@
-import {
-  validateSnowflakeSQL,
-  isSnowflakeSQLValid,
-  getSnowflakeSQLErrors,
-  SnowflakeSQL
-} from '../index';
+import { validateSnowflakeSQL, SnowflakeSQL } from '../index';
 import { PerformanceOptimizer } from '../PerformanceOptimizer';
 
 describe('Coverage Tests - Uncovered Lines and Branches', () => {

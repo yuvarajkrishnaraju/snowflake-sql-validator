@@ -1434,5 +1434,30 @@ LIMIT 11;`;
       expect(firstNonWhitespaceToken).toBeDefined();
       expect(firstNonWhitespaceToken!.type).toBe(670); // SELECT token type
     });
+
+    it('should detect missing semicolons in multi-statement SQL', () => {
+      const sql = 'SELECT * FROM users; SELECT * FROM orders WHERE active = true';
+      const result = validateSnowflakeSQL(sql);
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0].message).toBe('Missing semicolon at end of SQL statement');
+    });
+
+    // Missing space validation tests removed due to false positives
+    // TODO: Implement more accurate missing space detection
+
+    it('should allow valid SQL with proper spacing and semicolons', () => {
+      const sql = 'SELECT * FROM users WHERE active = true;';
+      const result = validateSnowflakeSQL(sql);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should allow single SQL statements without semicolons', () => {
+      const sql = 'SELECT * FROM users WHERE active = true';
+      const result = validateSnowflakeSQL(sql);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
   });
 });

@@ -1,4 +1,4 @@
-import { CharStream, Lexer, Token } from 'antlr4ts';
+import { CharStream, Token } from 'antlr4ts';
 import { SnowflakeLexer } from './parser/snowflake/SnowflakeLexer';
 
 /**

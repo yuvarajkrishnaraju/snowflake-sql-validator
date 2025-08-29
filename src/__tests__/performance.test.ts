@@ -411,9 +411,8 @@ describe('Performance Tests', () => {
          
          LEFT JOIN ASSET.PRTCB_TIERED_QUOTES_SETUP_MANUAL TQ
          ON
-             CP.QUOTE_NUM = TQ.QUOTE_NUM
- WHERE
-   1 = 1 
+             CP.QUOTE_NUM = TQ.QUOTE_NUM WHERE
+   1 = 1
  GROUP BY
    1,2,3,4,5,6,7,8,9
  HAVING

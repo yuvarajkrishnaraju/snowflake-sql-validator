@@ -1,6 +1,4 @@
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor';
-import { ParseTree } from 'antlr4ts/tree/ParseTree';
-import { RuleNode } from 'antlr4ts/tree/RuleNode';
 import { TerminalNode } from 'antlr4ts/tree/TerminalNode';
 
 export class SnowflakeVisitor<Result> extends AbstractParseTreeVisitor<Result> {
