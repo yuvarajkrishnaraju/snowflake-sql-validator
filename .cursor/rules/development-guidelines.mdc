@@ -1,0 +1,85 @@
+# Development Guidelines
+
+## Code Style & Standards
+
+### TypeScript Best Practices
+- Use strict typing with interfaces for all public APIs
+- Prefer `const` over `let` when possible
+- Use meaningful variable and function names
+- Document complex methods with JSDoc comments
+
+### Performance Considerations
+- **Caching**: Always check if data can be cached before processing
+- **Regex**: Use single, optimized patterns instead of multiple iterations
+- **Memory**: Implement proper cleanup for long-running processes
+- **Monitoring**: Use built-in performance tracking for optimization
+
+### Error Handling
+- Provide meaningful error messages with context
+- Use consistent error interfaces (see [ParseError](mdc:src/SnowflakeSQL.ts))
+- Include suggestions for fixing common issues
+- Log performance metrics for debugging
+
+## Testing Requirements
+
+### Test Coverage
+- Maintain >80% code coverage
+- Test both positive and negative cases
+- Include performance benchmarks for critical paths
+- Test edge cases and boundary conditions
+
+### Test Structure
+- Use descriptive test names that explain the scenario
+- Group related tests in describe blocks
+- Clean up state between tests (clear caches, reset stats)
+- Use beforeEach/afterEach for common setup/cleanup
+
+### Performance Testing
+- Measure execution time for critical operations
+- Test caching effectiveness with repeated operations
+- Verify memory usage doesn't grow unbounded
+- Benchmark against previous versions
+
+## API Design Principles
+
+### Consistency
+- Follow established naming conventions
+- Use similar parameter patterns across methods
+- Maintain backward compatibility when possible
+- Provide consistent return types
+
+### Extensibility
+- Design interfaces for future enhancements
+- Use dependency injection for testability
+- Keep core logic separate from utility functions
+- Document extension points clearly
+
+### Documentation
+- Include usage examples in JSDoc
+- Document performance characteristics
+- Explain caching behavior and memory usage
+- Provide migration guides for breaking changes
+
+## Performance Optimization
+
+### When to Optimize
+- Profile before optimizing
+- Focus on frequently called code paths
+- Consider memory usage alongside speed
+- Test optimizations with real-world data
+
+### Optimization Techniques
+- Use the built-in caching system
+- Implement batch processing for multiple operations
+- Leverage the PerformanceOptimizer utilities
+- Monitor and adjust cache sizes based on usage patterns
+
+### Memory Management
+- Set appropriate cache limits
+- Implement LRU eviction for large caches
+- Clear caches periodically in long-running apps
+- Monitor memory usage in production environments
+description:
+globs:
+alwaysApply: true
+---

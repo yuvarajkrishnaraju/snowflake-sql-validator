@@ -1,0 +1,33 @@
+# Performance Optimizations Guide
+
+This library has been significantly optimized for performance. Key optimizations include:
+
+## Caching System
+- **SQL Normalization Cache**: The [SnowflakeSQL.ts](mdc:src/SnowflakeSQL.ts) class implements a static cache for normalized SQL statements
+- **Cache Size Limit**: Set to 1000 entries to prevent memory issues
+- **Cache Management**: Use `SnowflakeSQL.clearCache()` to free memory when needed
+
+## Lexer Optimizations
+- **Map-based Keyword Lookup**: [CaseInsensitiveSnowflakeLexer.ts](mdc:src/CaseInsensitiveSnowflakeLexer.ts) uses static Maps for efficient keyword matching
+- **Single Pass Processing**: Keywords are processed in a single pass through the token stream
+- **Minimal String Operations**: Reduced string manipulation for better performance
+
+## Regex Optimization
+- **Single Pattern**: Uses one optimized regex pattern instead of multiple iterations
+- **Word Boundaries**: Proper word boundary matching prevents false positives
+- **Efficient Replacement**: Single `replace()` call with callback function
+
+## Performance Monitoring
+- **Parse Time Tracking**: Built-in performance measurement in the parse method
+- **Statistics API**: Access performance data via `SnowflakeSQL.getPerformanceStats()`
+- **Cache Statistics**: Monitor cache usage with `SnowflakeSQL.getCacheStats()`
+
+## Best Practices
+- Reuse parser instances when possible
+- Monitor cache size in high-throughput scenarios
+- Use the performance statistics to identify bottlenecks
+- Clear caches periodically in long-running applications
+description:
+globs:
+alwaysApply: true
+---

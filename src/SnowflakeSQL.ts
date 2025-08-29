@@ -17,87 +17,39 @@ export class SnowflakeSQL {
   private lexer: CaseInsensitiveSnowflakeLexer | null = null;
   private parser: SnowflakeParser | null = null;
 
+  // Cache for normalized SQL to avoid repeated processing
+  private static sqlCache = new Map<string, string>();
+  private static readonly CACHE_SIZE_LIMIT = 1000;
+
+  // Performance tracking
+  private static parseTimes: number[] = [];
+
   constructor() {}
 
   /**
    * Normalize SQL input to handle case-insensitive keywords
    * Only converts completely lowercase keywords to uppercase, leaves mixed case unchanged
+   * Optimized with single regex and Map lookup for better performance
    */
   private normalizeSQL(sql: string): string {
-    // Convert common SQL keywords to uppercase for better compatibility
-    // Only convert completely lowercase keywords, leave mixed case unchanged
-    const keywords = [
-      'select',
-      'from',
-      'where',
-      'insert',
-      'update',
-      'delete',
-      'create',
-      'drop',
-      'alter',
-      'as',
-      'and',
-      'or',
-      'into',
-      'values',
-      'set',
-      'join',
-      'left',
-      'right',
-      'inner',
-      'outer',
-      'on',
-      'group',
-      'by',
-      'order',
-      'having',
-      'limit',
-      'offset',
-      'union',
-      'all',
-      'distinct',
-      'count',
-      'sum',
-      'avg',
-      'case',
-      'when',
-      'then',
-      'else',
-      'end',
-      'is',
-      'null',
-      'not',
-      'like',
-      'in',
-      'between',
-      'exists',
-      'cast',
-      'current_date',
-      'current_time',
-      'current_timestamp',
-      'true',
-      'false',
-      'table',
-      'if',
-      'exists'
-    ];
+    // Check cache first
+    if (SnowflakeSQL.sqlCache.has(sql)) {
+      return SnowflakeSQL.sqlCache.get(sql)!;
+    }
 
-    let normalizedSQL = sql;
+    // Use a single optimized regex with word boundaries for all keywords
+    const keywordRegex =
+      /\b(select|from|where|insert|update|delete|create|drop|alter|as|and|or|into|values|set|join|left|right|inner|outer|on|group|by|order|having|limit|offset|union|all|distinct|count|sum|avg|case|when|then|else|end|is|null|not|like|in|between|exists|cast|current_date|current_time|current_timestamp|true|false|table|if|exists)\b/g;
 
-    // Use regex to replace only completely lowercase keywords while preserving mixed case
-    keywords.forEach((keyword) => {
-      // Use word boundaries and ensure the entire word is lowercase before replacing
-      const regex = new RegExp(`\\b${keyword}\\b`, 'g');
-      normalizedSQL = normalizedSQL.replace(regex, (match) => {
-        // Only convert to uppercase if the entire match is lowercase
-        if (match === match.toLowerCase()) {
-          return match.toUpperCase();
-        }
-        // Return unchanged if it's mixed case
-        return match;
-      });
+    const normalizedSQL = sql.replace(keywordRegex, (match) => {
+      // Only convert to uppercase if the entire match is lowercase
+      return match === match.toLowerCase() ? match.toUpperCase() : match;
     });
+
+    // Cache the result (with size limit to prevent memory issues)
+    if (SnowflakeSQL.sqlCache.size < SnowflakeSQL.CACHE_SIZE_LIMIT) {
+      SnowflakeSQL.sqlCache.set(sql, normalizedSQL);
+    }
 
     return normalizedSQL;
   }
@@ -106,6 +58,7 @@ export class SnowflakeSQL {
    * Parse SQL and return any syntax errors
    */
   public parse(sql: string): { errors: ParseError[] } {
+    const startTime = performance.now();
     // Normalize the SQL to handle case-insensitive keywords
     const normalizedSQL = this.normalizeSQL(sql);
 
@@ -154,6 +107,8 @@ export class SnowflakeSQL {
         });
       }
     }
+    const endTime = performance.now();
+    SnowflakeSQL.parseTimes.push(endTime - startTime);
 
     return { errors };
   }
@@ -213,5 +168,49 @@ export class SnowflakeSQL {
   public isValid(sql: string): boolean {
     const result = this.parse(sql);
     return result.errors.length === 0;
+  }
+
+  /**
+   * Clear the SQL normalization cache to free memory
+   */
+  public static clearCache(): void {
+    SnowflakeSQL.sqlCache.clear();
+  }
+
+  /**
+   * Get cache statistics for monitoring
+   */
+  public static getCacheStats(): { size: number; limit: number } {
+    return {
+      size: SnowflakeSQL.sqlCache.size,
+      limit: SnowflakeSQL.CACHE_SIZE_LIMIT
+    };
+  }
+
+  /**
+   * Get performance statistics
+   */
+  public static getPerformanceStats(): {
+    averageParseTime: number;
+    totalParses: number;
+    cacheHitRate: number;
+  } {
+    const avgTime =
+      SnowflakeSQL.parseTimes.length > 0
+        ? SnowflakeSQL.parseTimes.reduce((a, b) => a + b, 0) / SnowflakeSQL.parseTimes.length
+        : 0;
+
+    return {
+      averageParseTime: avgTime,
+      totalParses: SnowflakeSQL.parseTimes.length,
+      cacheHitRate: 0 // TODO: Implement cache hit rate calculation
+    };
+  }
+
+  /**
+   * Clear performance statistics
+   */
+  public static clearPerformanceStats(): void {
+    SnowflakeSQL.parseTimes = [];
   }
 }

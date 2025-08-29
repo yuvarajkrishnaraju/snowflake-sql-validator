@@ -1,0 +1,48 @@
+# Library Architecture Overview
+
+The Snowflake SQL Validator is built with a modular, performance-optimized architecture:
+
+## Core Components
+
+### 1. Main Parser Class
+- **[SnowflakeSQL.ts](mdc:src/SnowflakeSQL.ts)**: Main entry point for SQL validation
+- **Responsibilities**: SQL normalization, parsing orchestration, error collection
+- **Key Methods**: `parse()`, `validate()`, `getTokens()`, `normalizeSQL()`
+
+### 2. Lexer Implementation
+- **[CaseInsensitiveSnowflakeLexer.ts](mdc:src/CaseInsensitiveSnowflakeLexer.ts)**: Handles case-insensitive token recognition
+- **Features**: Map-based keyword lookup, efficient token processing
+- **Integration**: Extends ANTLR4-generated SnowflakeLexer
+
+### 3. Performance Utilities
+- **[PerformanceOptimizer.ts](mdc:src/PerformanceOptimizer.ts)**: Advanced caching and optimization utilities
+- **Features**: LRU cache, debouncing, throttling, batch processing
+- **Usage**: Import for custom performance optimization needs
+
+### 4. ANTLR4 Generated Files
+- **Location**: [src/parser/snowflake/](mdc:src/parser/snowflake/)
+- **Files**: Lexer, Parser, Visitor, and Listener classes
+- **Purpose**: Grammar-based SQL parsing and validation
+
+## Data Flow
+1. **Input**: SQL string (case-insensitive)
+2. **Normalization**: Convert lowercase keywords to uppercase
+3. **Lexical Analysis**: Tokenize using optimized lexer
+4. **Parsing**: ANTLR4-based syntax validation
+5. **Output**: Parse errors or validation results
+
+## Performance Features
+- **Caching**: SQL normalization results cached for repeated queries
+- **Optimized Regex**: Single pattern matching for keyword conversion
+- **Memory Management**: Configurable cache limits and LRU eviction
+- **Monitoring**: Built-in performance tracking and statistics
+
+## Testing Strategy
+- **[comprehensive.test.ts](mdc:src/__tests__/comprehensive.test.ts)**: Core functionality tests
+- **[index.test.ts](mdc:src/__tests__/index.test.ts)**: Case-insensitive parsing tests
+- **[performance.test.ts](mdc:src/__tests__/performance.test.ts)**: Performance optimization tests
+- **Coverage**: Maintains high test coverage for reliability
+description:
+globs:
+alwaysApply: true
+---

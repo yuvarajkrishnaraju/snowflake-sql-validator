@@ -1,0 +1,42 @@
+# Case-Insensitive SQL Parsing
+
+The library supports case-insensitive SQL keyword parsing with specific behavior:
+
+## Supported Keywords
+The following SQL keywords are automatically converted from lowercase to uppercase:
+- `select`, `from`, `where`, `insert`, `update`, `delete`
+- `create`, `drop`, `alter`, `as`, `and`, `or`
+- `into`, `values`, `set`, `join`, `left`, `right`
+- `inner`, `outer`, `on`, `group`, `by`, `order`
+- `having`, `limit`, `offset`, `union`, `all`, `distinct`
+- `count`, `sum`, `avg`, `case`, `when`, `then`, `else`, `end`
+- `is`, `null`, `not`, `like`, `in`, `between`, `exists`
+- `cast`, `current_date`, `current_time`, `current_timestamp`
+- `true`, `false`, `table`, `if`, `exists`
+
+## Behavior Rules
+- **Lowercase keywords** (e.g., `select`, `from`) → ✅ **Accepted** and converted to uppercase
+- **Uppercase keywords** (e.g., `SELECT`, `FROM`) → ✅ **Accepted** as-is
+- **Mixed case keywords** (e.g., `sElEcT`, `fRoM`) → ❌ **Rejected** by parser
+
+## Implementation Details
+- **Normalization**: Handled in [SnowflakeSQL.ts](mdc:src/SnowflakeSQL.ts) `normalizeSQL()` method
+- **Lexer Processing**: [CaseInsensitiveSnowflakeLexer.ts](mdc:src/CaseInsensitiveSnowflakeLexer.ts) handles token conversion
+- **Regex Pattern**: Single optimized regex with word boundaries for efficient matching
+
+## Examples
+```typescript
+// ✅ These will parse successfully:
+parser.parse('select * from table1')        // Lowercase
+parser.parse('SELECT * FROM TABLE1')        // Uppercase
+
+// ❌ This will fail:
+parser.parse('sElEcT * fRoM tAbLe1')       // Mixed case
+```
+
+## Testing
+Use the comprehensive test suite in [index.test.ts](mdc:src/__tests__/index.test.ts) to verify case-insensitive behavior.
+description:
+globs:
+alwaysApply: true
+---

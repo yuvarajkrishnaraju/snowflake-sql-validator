@@ -43,7 +43,9 @@
     "lint:fix": "eslint src/**/*.ts --ext .ts --fix",
     "type-check": "tsc --noEmit",
     "check-all": "npm run lint && npm run type-check && npm run test",
-    "pre-commit": "npm run check-all"
+    "pre-commit": "npm run check-all",
+    "format:staged": "lint-staged",
+    "format:check": "prettier --check \"./**/*.{js,jsx,json,ts,tsx}\""
   },
   "dependencies": {
     "antlr4ts": "^0.5.0-alpha.4"

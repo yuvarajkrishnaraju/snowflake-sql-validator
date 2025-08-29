@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Preparing commit message..."
+echo "📝 Files staged for commit:"
+git diff --cached --name-only
+echo ""
