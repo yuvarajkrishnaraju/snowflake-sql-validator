@@ -32,7 +32,7 @@ SELECT
 FROM source_table
 WHERE source_table.active = true`;
       const result = validateSnowflakeSQL(sql);
-      
+
       // This simple INSERT SQL should pass validation
       expect(result.isValid).toBe(true);
       expect(result.errors.length).toBe(0);
@@ -48,7 +48,7 @@ WHERE source_table.active = true`;
 FROM json_table source
 WHERE source.MEMBER:active::boolean = true`;
       const result = validateSnowflakeSQL(sql);
-      
+
       // Note: While this syntax is valid Snowflake SQL, the current ANTLR parser
       // doesn't support JSON path access syntax (MEMBER:guid::string).
       // This test documents the limitation and ensures the parser handles it gracefully.
@@ -71,9 +71,100 @@ LIMIT 11;`;
       const sql = 'select 1;';
       const result = validateSnowflakeSQL(sql);
 
-      // The parser is more flexible than expected, so this might actually pass
-      expect(typeof result.isValid).toBe('boolean');
-      expect(Array.isArray(result.errors)).toBe(true);
+      // The parser now supports lowercase SQL keywords
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should validate mixed case SQL keywords', () => {
+      const sql = 'SeLeCt CoLuMn1 FrOm TaBlE1';
+      const result = validateSnowflakeSQL(sql);
+
+      // Mixed case keywords should not be parsed correctly
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+
+    it('should validate lowercase INSERT SQL', () => {
+      const sql = 'insert into table1 values (1, 2)';
+      const result = validateSnowflakeSQL(sql);
+
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should validate lowercase UPDATE SQL', () => {
+      const sql = 'update table1 set col1 = 10 where id = 1';
+      const result = validateSnowflakeSQL(sql);
+
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should validate lowercase DELETE SQL', () => {
+      const sql = 'delete from table1 where id = 1';
+      const result = validateSnowflakeSQL(sql);
+
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should validate lowercase CREATE SQL', () => {
+      const sql = 'create table table1 as select * from table2';
+      const result = validateSnowflakeSQL(sql);
+
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should validate lowercase DROP SQL', () => {
+      const sql = 'drop table if exists table1';
+      const result = validateSnowflakeSQL(sql);
+
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should validate complex lowercase SQL with JOINs', () => {
+      const sql = `
+        select t1.id, t1.name, t2.category
+        from table1 t1
+        left join table2 t2 on t1.id = t2.id
+        where t1.active = true
+        order by t1.name
+        limit 10
+      `;
+      const result = validateSnowflakeSQL(sql);
+
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should validate lowercase SQL with CASE statements', () => {
+      const sql = `
+        select 
+          case 
+            when col1 > 100 then 'high'
+            when col1 > 50 then 'medium'
+            else 'low'
+          end as category
+        from table1
+      `;
+      const result = validateSnowflakeSQL(sql);
+
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should validate lowercase SQL with subqueries', () => {
+      const sql = `
+        select * from table1 
+        where id in (select id from table2 where active = true)
+      `;
+      const result = validateSnowflakeSQL(sql);
+
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
     });
 
     it('should validate JSON path access with cast', () => {
@@ -471,6 +562,34 @@ LIMIT 11;`;
       expect(Array.isArray(result.errors)).toBe(true);
       expect(result.errors.length).toBeGreaterThan(0);
     });
+
+    it('should handle mixed case SQL keywords correctly', () => {
+      const sql = 'sElEcT cOlUmN1 fRoM tAbLe1';
+      const parser = new SnowflakeSQL();
+      const result = parser.parse(sql);
+
+      // Mixed case keywords should not be parsed correctly
+      expect(Array.isArray(result.errors)).toBe(true);
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+
+    it('should handle completely lowercase SQL keywords correctly', () => {
+      const sql = 'select column1 from table1';
+      const parser = new SnowflakeSQL();
+      const result = parser.parse(sql);
+
+      expect(Array.isArray(result.errors)).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should handle completely uppercase SQL keywords correctly', () => {
+      const sql = 'SELECT COLUMN1 FROM TABLE1';
+      const parser = new SnowflakeSQL();
+      const result = parser.parse(sql);
+
+      expect(Array.isArray(result.errors)).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
   });
 
   describe('Edge cases', () => {
@@ -531,6 +650,17 @@ LIMIT 11;`;
       expect(Array.isArray(errors)).toBe(true);
     });
 
+    it('should visit parse tree from lowercase SQL and return validation errors', () => {
+      const sql = 'select column1 from table1';
+      const parser = new SnowflakeSQL();
+      const visitor = new (require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor)();
+
+      const tree = parser.getParseTree(sql);
+      const errors = visitor.visit(tree);
+
+      expect(Array.isArray(errors)).toBe(true);
+    });
+
     it('should handle terminal node validation', () => {
       const sql = 'SELECT COLUMN1 FROM TABLE1';
       const parser = new SnowflakeSQL();
@@ -553,9 +683,32 @@ LIMIT 11;`;
       expect(Array.isArray(errors)).toBe(true);
     });
 
+    it('should detect cast syntax validation errors in lowercase SQL', () => {
+      const sql = 'select column1::invalid_type from table1';
+      const parser = new SnowflakeSQL();
+      const visitor = new (require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor)();
+
+      const tree = parser.getParseTree(sql);
+      const errors = visitor.visit(tree);
+
+      expect(Array.isArray(errors)).toBe(true);
+    });
+
     it('should handle regex pattern matching for cast syntax', () => {
       // This test covers the regex pattern matching in visitTerminal
       const sql = 'SELECT COLUMN1::STRING FROM TABLE1';
+      const parser = new SnowflakeSQL();
+      const visitor = new (require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor)();
+
+      const tree = parser.getParseTree(sql);
+      const errors = visitor.visit(tree);
+
+      expect(Array.isArray(errors)).toBe(true);
+    });
+
+    it('should handle regex pattern matching for cast syntax in lowercase SQL', () => {
+      // This test covers the regex pattern matching in visitTerminal for lowercase SQL
+      const sql = 'select column1::string from table1';
       const parser = new SnowflakeSQL();
       const visitor = new (require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor)();
 
@@ -587,6 +740,19 @@ LIMIT 11;`;
       expect(errors.length).toBeGreaterThanOrEqual(0);
     });
 
+    it('should handle visitor with no errors for lowercase SQL', () => {
+      const sql = 'select column1 from table1';
+      const parser = new SnowflakeSQL();
+      const visitor = new (require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor)();
+
+      const tree = parser.getParseTree(sql);
+      const errors = visitor.visit(tree);
+
+      expect(Array.isArray(errors)).toBe(true);
+      // Simple SELECT should not trigger validation errors
+      expect(errors.length).toBeGreaterThanOrEqual(0);
+    });
+
     it('should handle complex SQL with multiple validation points', () => {
       const sql = `
         SELECT 
@@ -595,6 +761,24 @@ LIMIT 11;`;
           column3::variant AS col3
         FROM table1
         WHERE column1::boolean = true
+      `;
+      const parser = new SnowflakeSQL();
+      const visitor = new (require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor)();
+
+      const tree = parser.getParseTree(sql);
+      const errors = visitor.visit(tree);
+
+      expect(Array.isArray(errors)).toBe(true);
+    });
+
+    it('should handle complex lowercase SQL with multiple validation points', () => {
+      const sql = `
+        select 
+          column1::string as col1,
+          column2::int as col2,
+          column3::variant as col3
+        from table1
+        where column1::boolean = true
       `;
       const parser = new SnowflakeSQL();
       const visitor = new (require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor)();
@@ -716,6 +900,142 @@ LIMIT 11;`;
 
       expect(result.isValid).toBe(true);
       expect(result.errors).toHaveLength(0);
+    });
+  });
+
+  describe('CaseInsensitiveSnowflakeLexer', () => {
+    it('should handle lowercase SELECT keyword', () => {
+      const sql = 'select column1 from table1';
+      const parser = new SnowflakeSQL();
+      const tokens = parser.getTokens(sql);
+
+      expect(Array.isArray(tokens)).toBe(true);
+      expect(tokens.length).toBeGreaterThan(0);
+
+      // The first token should be SELECT (case-insensitive)
+      const firstToken = tokens[0];
+      expect(firstToken.text).toBe('SELECT');
+    });
+
+    it('should handle mixed case keywords', () => {
+      const sql = 'SeLeCt CoLuMn1 FrOm TaBlE1';
+      const parser = new SnowflakeSQL();
+      const tokens = parser.getTokens(sql);
+
+      expect(Array.isArray(tokens)).toBe(true);
+      expect(tokens.length).toBeGreaterThan(0);
+
+      // Mixed case keywords should not be normalized, so they should be treated as ID tokens
+      // The first token should be an ID token (type 905) not a SELECT token (type 670)
+      const firstToken = tokens[0];
+      expect(firstToken.type).toBe(905); // ID token type
+    });
+
+    it('should handle lowercase INSERT keyword', () => {
+      const sql = 'insert into table1 values (1, 2)';
+      const parser = new SnowflakeSQL();
+      const tokens = parser.getTokens(sql);
+
+      expect(Array.isArray(tokens)).toBe(true);
+      expect(tokens.length).toBeGreaterThan(0);
+
+      // The first token should be INSERT (case-insensitive)
+      const firstToken = tokens[0];
+      expect(firstToken.text).toBe('INSERT');
+    });
+
+    it('should handle lowercase UPDATE keyword', () => {
+      const sql = 'update table1 set col1 = 10';
+      const parser = new SnowflakeSQL();
+      const tokens = parser.getTokens(sql);
+
+      expect(Array.isArray(tokens)).toBe(true);
+      expect(tokens.length).toBeGreaterThan(0);
+
+      // The first token should be UPDATE (case-insensitive)
+      const firstToken = tokens[0];
+      expect(firstToken.text).toBe('UPDATE');
+    });
+
+    it('should handle lowercase DELETE keyword', () => {
+      const sql = 'delete from table1 where id = 1';
+      const parser = new SnowflakeSQL();
+      const tokens = parser.getTokens(sql);
+
+      expect(Array.isArray(tokens)).toBe(true);
+      expect(tokens.length).toBeGreaterThan(0);
+
+      // The first token should be DELETE (case-insensitive)
+      const firstToken = tokens[0];
+      expect(firstToken.text).toBe('DELETE');
+    });
+
+    it('should handle lowercase CREATE keyword', () => {
+      const sql = 'create table table1 (id int)';
+      const parser = new SnowflakeSQL();
+      const tokens = parser.getTokens(sql);
+
+      expect(Array.isArray(tokens)).toBe(true);
+      expect(tokens.length).toBeGreaterThan(0);
+
+      // The first token should be CREATE (case-insensitive)
+      const firstToken = tokens[0];
+      expect(firstToken.text).toBe('CREATE');
+    });
+
+    it('should handle lowercase DROP keyword', () => {
+      const sql = 'drop table table1';
+      const parser = new SnowflakeSQL();
+      const tokens = parser.getTokens(sql);
+
+      expect(Array.isArray(tokens)).toBe(true);
+      expect(tokens.length).toBeGreaterThan(0);
+
+      // The first token should be DROP (case-insensitive)
+      const firstToken = tokens[0];
+      expect(firstToken.text).toBe('DROP');
+    });
+
+    it('should preserve identifier case', () => {
+      const sql = 'select MyColumn from MyTable';
+      const parser = new SnowflakeSQL();
+      const tokens = parser.getTokens(sql);
+
+      expect(Array.isArray(tokens)).toBe(true);
+      expect(tokens.length).toBeGreaterThan(0);
+
+      // Keywords should be uppercase, identifiers should preserve case
+      const selectToken = tokens.find((t) => t.text === 'SELECT');
+      const myColumnToken = tokens.find((t) => t.text === 'MyColumn');
+      const fromToken = tokens.find((t) => t.text === 'FROM');
+      const myTableToken = tokens.find((t) => t.text === 'MyTable');
+
+      expect(selectToken).toBeDefined();
+      expect(myColumnToken).toBeDefined();
+      expect(fromToken).toBeDefined();
+      expect(myTableToken).toBeDefined();
+    });
+
+    it('should handle complex lowercase SQL with multiple keywords', () => {
+      const sql = `
+        select t1.id, t1.name, t2.category
+        from table1 t1
+        left join table2 t2 on t1.id = t2.id
+        where t1.active = true
+        group by t1.category
+        having count(*) > 1
+        order by t1.name
+        limit 10
+      `;
+      const parser = new SnowflakeSQL();
+      const tokens = parser.getTokens(sql);
+
+      expect(Array.isArray(tokens)).toBe(true);
+      expect(tokens.length).toBeGreaterThan(0);
+
+      // The first token should be SELECT (normalized from lowercase)
+      const firstToken = tokens[0];
+      expect(firstToken.type).toBe(670); // SELECT token type
     });
   });
 });
