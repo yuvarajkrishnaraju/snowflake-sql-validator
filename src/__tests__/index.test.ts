@@ -1033,9 +1033,10 @@ LIMIT 11;`;
       expect(Array.isArray(tokens)).toBe(true);
       expect(tokens.length).toBeGreaterThan(0);
 
-      // The first token should be SELECT (normalized from lowercase)
-      const firstToken = tokens[0];
-      expect(firstToken.type).toBe(670); // SELECT token type
+      // The first non-whitespace token should be SELECT (normalized from lowercase)
+      const firstNonWhitespaceToken = tokens.find(t => t.type !== 898); // Skip whitespace tokens
+      expect(firstNonWhitespaceToken).toBeDefined();
+      expect(firstNonWhitespaceToken!.type).toBe(670); // SELECT token type
     });
   });
 });

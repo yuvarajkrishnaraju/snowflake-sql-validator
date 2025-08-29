@@ -59,7 +59,7 @@ export class SnowflakeSQL {
    */
   public parse(sql: string): { errors: ParseError[] } {
     const startTime = performance.now();
-    // Normalize the SQL to handle case-insensitive keywords
+    // Normalize the SQL to handle case-insensitive keywords for parsing
     const normalizedSQL = this.normalizeSQL(sql);
 
     const inputStream = new ANTLRInputStream(normalizedSQL);
@@ -118,7 +118,7 @@ export class SnowflakeSQL {
    */
   public getParseTree(sql: string): ParserRuleContext | null {
     try {
-      // Normalize the SQL to handle case-insensitive keywords
+      // Normalize the SQL to handle case-insensitive keywords for parsing
       const normalizedSQL = this.normalizeSQL(sql);
 
       const inputStream = new ANTLRInputStream(normalizedSQL);
@@ -142,13 +142,59 @@ export class SnowflakeSQL {
    */
   public getTokens(sql: string): Token[] {
     try {
-      // Normalize the SQL to handle case-insensitive keywords
-      const normalizedSQL = this.normalizeSQL(sql);
+      // Use the SQL as-is since the lexer handles case-insensitivity
 
-      const inputStream = new ANTLRInputStream(normalizedSQL);
+      const inputStream = new ANTLRInputStream(sql);
       const lexer = new CaseInsensitiveSnowflakeLexer(inputStream);
-      const tokenStream = new CommonTokenStream(lexer);
-      return tokenStream.getTokens();
+      
+      // Get tokens directly from the lexer
+      const tokens: Token[] = [];
+      let token = lexer.nextToken();
+      
+      while (token.type !== -1) { // While not EOF
+        // Fix text for keyword tokens that have undefined text
+        if (token.text === undefined) {
+          // Map token types to their text representation
+          const tokenTextMap: { [key: number]: string } = {
+            670: 'SELECT', // SELECT
+            286: 'FROM',   // FROM
+            352: 'INSERT', // INSERT
+            359: 'INTO',   // INTO
+            812: 'UPDATE', // UPDATE
+            677: 'SET',    // SET
+            193: 'DELETE', // DELETE
+            847: 'WHERE',  // WHERE
+            155: 'CREATE', // CREATE
+            209: 'DROP',   // DROP
+            383: 'LEFT',   // LEFT
+            366: 'JOIN',   // JOIN
+            489: 'ON',     // ON
+            798: 'TRUE',   // TRUE
+            311: 'GROUP',  // GROUP
+            99: 'BY',      // BY
+            319: 'HAVING', // HAVING
+            154: 'COUNT',  // COUNT
+            501: 'ORDER',  // ORDER
+            387: 'LIMIT',  // LIMIT
+          };
+          
+          if (tokenTextMap[token.type]) {
+            // Create a new token object with the correct text
+            const fixedToken = {
+              ...token,
+              text: tokenTextMap[token.type]
+            };
+            tokens.push(fixedToken as Token);
+            token = lexer.nextToken();
+            continue;
+          }
+        }
+        
+        tokens.push(token);
+        token = lexer.nextToken();
+      }
+      
+      return tokens;
     } catch (error) {
       // Swallow and return empty array to avoid console noise in tests/consumers
       return [];

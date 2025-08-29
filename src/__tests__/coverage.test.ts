@@ -4,6 +4,7 @@ import {
   getSnowflakeSQLErrors,
   SnowflakeSQL
 } from '../index';
+import { PerformanceOptimizer } from '../PerformanceOptimizer';
 
 describe('Coverage Tests - Uncovered Lines and Branches', () => {
   describe('SnowflakeSQL Class - Uncovered Branches', () => {
@@ -813,6 +814,111 @@ describe('Coverage Tests - Uncovered Lines and Branches', () => {
 
       expect(Array.isArray(tokens)).toBe(true);
       expect(tokens.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('PerformanceOptimizer - Uncovered Methods', () => {
+    it('should test LRU cache eviction when cache is full', () => {
+      // Fill the cache to trigger eviction
+      for (let i = 0; i < 600; i++) {
+        PerformanceOptimizer.setCached(`key${i}`, `value${i}`);
+      }
+
+      const stats = PerformanceOptimizer.getCacheStats();
+      expect(stats.size).toBeLessThanOrEqual(500); // Should not exceed MAX_CACHE_SIZE
+      expect(stats.maxSize).toBe(500);
+    });
+
+    it('should test debounce functionality', () => {
+      let callCount = 0;
+      const debouncedFn = PerformanceOptimizer.debounce(() => {
+        callCount++;
+      }, 100);
+
+      // Call multiple times quickly
+      debouncedFn();
+      debouncedFn();
+      debouncedFn();
+
+      expect(callCount).toBe(0); // Should not execute immediately
+
+      // Wait for debounce delay
+      return new Promise(resolve => {
+        setTimeout(() => {
+          expect(callCount).toBe(1); // Should execute only once
+          resolve(undefined);
+        }, 150);
+      });
+    });
+
+    it('should test throttle functionality', () => {
+      let callCount = 0;
+      const throttledFn = PerformanceOptimizer.throttle(() => {
+        callCount++;
+      }, 100);
+
+      // Call multiple times quickly
+      throttledFn();
+      throttledFn();
+      throttledFn();
+
+      expect(callCount).toBe(1); // Should execute only once initially
+
+      // Wait for throttle to reset
+      return new Promise(resolve => {
+        setTimeout(() => {
+          throttledFn();
+          expect(callCount).toBe(2); // Should execute again after delay
+          resolve(undefined);
+        }, 150);
+      });
+    });
+
+    it('should test batch processing with different batch sizes', () => {
+      const items = Array.from({ length: 25 }, (_, i) => i);
+      const processed: number[] = [];
+
+      PerformanceOptimizer.batch(items, 10, (batch) => {
+        processed.push(...batch);
+      });
+
+      expect(processed).toHaveLength(25);
+      expect(processed).toEqual(Array.from({ length: 25 }, (_, i) => i));
+    });
+
+    it('should test measureTime functionality', () => {
+      // Test that measureTime executes the function and returns the result
+      const result = PerformanceOptimizer.measureTime(() => {
+        return 'test result';
+      }, 'Test Function');
+
+      expect(result).toBe('test result');
+      
+      // Note: We can't easily test console.log output in Jest without complex mocking
+      // The important part is that the function executes and returns the expected result
+    });
+
+    it('should test cache statistics with empty cache', () => {
+      PerformanceOptimizer.clearAllCaches();
+      
+      const stats = PerformanceOptimizer.getCacheStats();
+      expect(stats.size).toBe(0);
+      expect(stats.maxSize).toBe(500);
+      expect(stats.hitRate).toBe(0);
+    });
+
+    it('should test cache access count updates', () => {
+      PerformanceOptimizer.clearAllCaches();
+      
+      // Set a value
+      PerformanceOptimizer.setCached('testKey', 'testValue');
+      
+      // Get it multiple times to update access count
+      PerformanceOptimizer.getCached('testKey');
+      PerformanceOptimizer.getCached('testKey');
+      
+      const stats = PerformanceOptimizer.getCacheStats();
+      expect(stats.size).toBe(1);
     });
   });
 });
