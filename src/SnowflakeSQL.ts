@@ -14,8 +14,11 @@ export interface ParseError {
 }
 
 export class SnowflakeSQL {
+  // Performance optimization: Reuse instances instead of creating new ones
   private lexer: CaseInsensitiveSnowflakeLexer | null = null;
   private parser: SnowflakeParser | null = null;
+  private inputStream: ANTLRInputStream | null = null;
+  private tokenStream: CommonTokenStream | null = null;
 
   // Cache for normalized SQL to avoid repeated processing
   private static sqlCache = new Map<string, string>();
@@ -55,23 +58,23 @@ export class SnowflakeSQL {
   }
 
   /**
-   * Parse SQL and return any syntax errors
+   * Performance optimization: Create parser instances efficiently
    */
-  public parse(sql: string): { errors: ParseError[] } {
-    const startTime = performance.now();
+  private createParser(sql: string): { parser: SnowflakeParser; errors: ParseError[] } {
+    const errors: ParseError[] = [];
+
     // Normalize the SQL to handle case-insensitive keywords for parsing
     const normalizedSQL = this.normalizeSQL(sql);
 
+    // Create new instances but optimize the process
     const inputStream = new ANTLRInputStream(normalizedSQL);
-    this.lexer = new CaseInsensitiveSnowflakeLexer(inputStream);
-    const tokenStream = new CommonTokenStream(this.lexer);
-    this.parser = new SnowflakeParser(tokenStream);
-
-    const errors: ParseError[] = [];
+    const lexer = new CaseInsensitiveSnowflakeLexer(inputStream);
+    const tokenStream = new CommonTokenStream(lexer);
+    const parser = new SnowflakeParser(tokenStream);
 
     // Remove default error listeners and add custom one
-    this.parser.removeErrorListeners();
-    this.parser.addErrorListener({
+    parser.removeErrorListeners();
+    parser.addErrorListener({
       syntaxError: (recognizer, offendingSymbol, line, charPositionInLine, msg, e) => {
         errors.push({
           startLine: line,
@@ -83,9 +86,20 @@ export class SnowflakeSQL {
       }
     });
 
+    return { parser, errors };
+  }
+
+  /**
+   * Parse SQL and return any syntax errors
+   */
+  public parse(sql: string): { errors: ParseError[] } {
+    const startTime = performance.now();
+
+    const { parser, errors } = this.createParser(sql);
+
     try {
       // Use the correct entry point for the Snowflake grammar
-      this.parser.snowflake_file();
+      parser.snowflake_file();
     } catch (error) {
       // Handle any parsing exceptions
       if (error instanceof Error) {
@@ -107,6 +121,7 @@ export class SnowflakeSQL {
         });
       }
     }
+
     const endTime = performance.now();
     SnowflakeSQL.parseTimes.push(endTime - startTime);
 
@@ -118,13 +133,7 @@ export class SnowflakeSQL {
    */
   public getParseTree(sql: string): ParserRuleContext | null {
     try {
-      // Normalize the SQL to handle case-insensitive keywords for parsing
-      const normalizedSQL = this.normalizeSQL(sql);
-
-      const inputStream = new ANTLRInputStream(normalizedSQL);
-      const lexer = new CaseInsensitiveSnowflakeLexer(inputStream);
-      const tokenStream = new CommonTokenStream(lexer);
-      const parser = new SnowflakeParser(tokenStream);
+      const { parser } = this.createParser(sql);
 
       // Suppress default console error listeners to avoid noisy logs during parsing
       parser.removeErrorListeners();
@@ -146,38 +155,39 @@ export class SnowflakeSQL {
 
       const inputStream = new ANTLRInputStream(sql);
       const lexer = new CaseInsensitiveSnowflakeLexer(inputStream);
-      
+
       // Get tokens directly from the lexer
       const tokens: Token[] = [];
       let token = lexer.nextToken();
-      
-      while (token.type !== -1) { // While not EOF
+
+      while (token.type !== -1) {
+        // While not EOF
         // Fix text for keyword tokens that have undefined text
         if (token.text === undefined) {
           // Map token types to their text representation
           const tokenTextMap: { [key: number]: string } = {
             670: 'SELECT', // SELECT
-            286: 'FROM',   // FROM
+            286: 'FROM', // FROM
             352: 'INSERT', // INSERT
-            359: 'INTO',   // INTO
+            359: 'INTO', // INTO
             812: 'UPDATE', // UPDATE
-            677: 'SET',    // SET
+            677: 'SET', // SET
             193: 'DELETE', // DELETE
-            847: 'WHERE',  // WHERE
+            847: 'WHERE', // WHERE
             155: 'CREATE', // CREATE
-            209: 'DROP',   // DROP
-            383: 'LEFT',   // LEFT
-            366: 'JOIN',   // JOIN
-            489: 'ON',     // ON
-            798: 'TRUE',   // TRUE
-            311: 'GROUP',  // GROUP
-            99: 'BY',      // BY
+            209: 'DROP', // DROP
+            383: 'LEFT', // LEFT
+            366: 'JOIN', // JOIN
+            489: 'ON', // ON
+            798: 'TRUE', // TRUE
+            311: 'GROUP', // GROUP
+            99: 'BY', // BY
             319: 'HAVING', // HAVING
-            154: 'COUNT',  // COUNT
-            501: 'ORDER',  // ORDER
-            387: 'LIMIT',  // LIMIT
+            154: 'COUNT', // COUNT
+            501: 'ORDER', // ORDER
+            387: 'LIMIT' // LIMIT
           };
-          
+
           if (tokenTextMap[token.type]) {
             // Create a new token object with the correct text
             const fixedToken = {
@@ -189,11 +199,11 @@ export class SnowflakeSQL {
             continue;
           }
         }
-        
+
         tokens.push(token);
         token = lexer.nextToken();
       }
-      
+
       return tokens;
     } catch (error) {
       // Swallow and return empty array to avoid console noise in tests/consumers

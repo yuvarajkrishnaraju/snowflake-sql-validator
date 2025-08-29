@@ -1034,7 +1034,7 @@ LIMIT 11;`;
       expect(tokens.length).toBeGreaterThan(0);
 
       // The first non-whitespace token should be SELECT (normalized from lowercase)
-      const firstNonWhitespaceToken = tokens.find(t => t.type !== 898); // Skip whitespace tokens
+      const firstNonWhitespaceToken = tokens.find((t) => t.type !== 898); // Skip whitespace tokens
       expect(firstNonWhitespaceToken).toBeDefined();
       expect(firstNonWhitespaceToken!.type).toBe(670); // SELECT token type
     });

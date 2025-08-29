@@ -843,7 +843,7 @@ describe('Coverage Tests - Uncovered Lines and Branches', () => {
       expect(callCount).toBe(0); // Should not execute immediately
 
       // Wait for debounce delay
-      return new Promise(resolve => {
+      return new Promise((resolve) => {
         setTimeout(() => {
           expect(callCount).toBe(1); // Should execute only once
           resolve(undefined);
@@ -865,7 +865,7 @@ describe('Coverage Tests - Uncovered Lines and Branches', () => {
       expect(callCount).toBe(1); // Should execute only once initially
 
       // Wait for throttle to reset
-      return new Promise(resolve => {
+      return new Promise((resolve) => {
         setTimeout(() => {
           throttledFn();
           expect(callCount).toBe(2); // Should execute again after delay
@@ -893,14 +893,14 @@ describe('Coverage Tests - Uncovered Lines and Branches', () => {
       }, 'Test Function');
 
       expect(result).toBe('test result');
-      
+
       // Note: We can't easily test console.log output in Jest without complex mocking
       // The important part is that the function executes and returns the expected result
     });
 
     it('should test cache statistics with empty cache', () => {
       PerformanceOptimizer.clearAllCaches();
-      
+
       const stats = PerformanceOptimizer.getCacheStats();
       expect(stats.size).toBe(0);
       expect(stats.maxSize).toBe(500);
@@ -909,14 +909,14 @@ describe('Coverage Tests - Uncovered Lines and Branches', () => {
 
     it('should test cache access count updates', () => {
       PerformanceOptimizer.clearAllCaches();
-      
+
       // Set a value
       PerformanceOptimizer.setCached('testKey', 'testValue');
-      
+
       // Get it multiple times to update access count
       PerformanceOptimizer.getCached('testKey');
       PerformanceOptimizer.getCached('testKey');
-      
+
       const stats = PerformanceOptimizer.getCacheStats();
       expect(stats.size).toBe(1);
     });
