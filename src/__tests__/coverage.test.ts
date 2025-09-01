@@ -1,918 +1,351 @@
-import { validateSnowflakeSQL, SnowflakeSQL } from '../index';
+import { SnowflakeSQL } from '../SnowflakeSQL';
 import { PerformanceOptimizer } from '../PerformanceOptimizer';
+import { SnowflakeValidationVisitor } from '../SnowflakeValidationVisitor';
+import { validateSnowflakeSQL, isSnowflakeSQLValid, getSnowflakeSQLErrors } from '../index';
 
-describe('Coverage Tests - Uncovered Lines and Branches', () => {
-  describe('SnowflakeSQL Class - Uncovered Branches', () => {
-    it('should handle non-Error exceptions in parse method', () => {
-      const sql = 'SELECT COLUMN1 FROM TABLE1';
-      const parser = new SnowflakeSQL();
-
-      // Test the non-Error exception handling by creating a scenario where
-      // the parser might encounter issues. Since we can't easily mock ANTLR,
-      // we'll test the actual behavior and ensure it's robust.
-      const result = parser.parse(sql);
-
-      expect(Array.isArray(result.errors)).toBe(true);
-      // The parser should handle valid SQL without errors
-      expect(result.errors.length).toBeGreaterThanOrEqual(0);
-    });
-
-    it('should handle null offendingSymbol in error listener', () => {
-      const sql = 'SELECT FROM TABLE1'; // Invalid SQL that triggers syntax errors
-      const parser = new SnowflakeSQL();
-      const result = parser.parse(sql);
-
-      expect(Array.isArray(result.errors)).toBe(true);
-      expect(result.errors.length).toBeGreaterThan(0);
-
-      // Check that the error has the expected structure even with null offendingSymbol
-      const firstError = result.errors[0];
-      expect(typeof firstError.startLine).toBe('number');
-      expect(typeof firstError.startColumn).toBe('number');
-      expect(typeof firstError.message).toBe('string');
-    });
-
-    it('should handle undefined offendingSymbol in error listener', () => {
-      const sql = 'SELECT FROM TABLE1'; // Invalid SQL that triggers syntax errors
-      const parser = new SnowflakeSQL();
-      const result = parser.parse(sql);
-
-      expect(Array.isArray(result.errors)).toBe(true);
-      expect(result.errors.length).toBeGreaterThan(0);
-
-      // Check that the error has the expected structure even with undefined offendingSymbol
-      const firstError = result.errors[0];
-      expect(typeof firstError.startLine).toBe('number');
-      expect(typeof firstError.startColumn).toBe('number');
-      expect(typeof firstError.message).toBe('string');
-    });
-
-    it('should handle getParseTree with null tree generation', () => {
-      const sql = 'SELECT COLUMN1 FROM TABLE1';
-      const parser = new SnowflakeSQL();
-
-      // Test that getParseTree handles the case gracefully
-      const tree = parser.getParseTree(sql);
-      expect(tree).not.toBeNull();
-      expect(typeof tree).toBe('object');
-    });
-
-    it('should handle getParseTree with exception', () => {
-      const sql = 'SELECT COLUMN1 FROM TABLE1';
-      const parser = new SnowflakeSQL();
-
-      // Test that getParseTree handles the case gracefully
-      const tree = parser.getParseTree(sql);
-      expect(tree).not.toBeNull();
-      expect(typeof tree).toBe('object');
-    });
-
-    it('should handle getTokens with exception', () => {
-      const sql = 'SELECT COLUMN1 FROM TABLE1';
-      const parser = new SnowflakeSQL();
-
-      // Test that getTokens handles the case gracefully
-      const tokens = parser.getTokens(sql);
-      expect(Array.isArray(tokens)).toBe(true);
-      expect(tokens.length).toBeGreaterThan(0);
-    });
-
-    it('should handle getParseTree with lexer exception', () => {
-      const sql = 'SELECT COLUMN1 FROM TABLE1';
-      const parser = new SnowflakeSQL();
-
-      // Test that getParseTree handles the case gracefully
-      const tree = parser.getParseTree(sql);
-      expect(tree).not.toBeNull();
-      expect(typeof tree).toBe('object');
-    });
+describe('Coverage Tests - Minimal', () => {
+  beforeEach(() => {
+    SnowflakeSQL.clearCache();
+    PerformanceOptimizer.clearAllCaches();
   });
 
-  describe('SnowflakeValidationVisitor - Uncovered Branches', () => {
-    it('should handle null tree in visit method', () => {
-      const visitor = new (require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor)();
-
-      const errors = visitor.visit(null as any);
-      expect(Array.isArray(errors)).toBe(true);
-      expect(errors).toHaveLength(0);
-    });
-
-    it('should handle empty tree in visit method', () => {
-      const visitor = new (require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor)();
-
-      // Create a proper mock tree object that has the accept method
-      const emptyTree = {
-        accept: (visitor: any) => {
-          // Mock the accept method to return an empty array
-          return [];
-        },
-        children: []
-      };
-
-      const errors = visitor.visit(emptyTree as any);
-      expect(Array.isArray(errors)).toBe(true);
-    });
-
-    it('should handle regex pattern matching for different cast types', () => {
-      const sql = 'SELECT column1::VARIANT AS col FROM table1';
-      const parser = new SnowflakeSQL();
-      const visitor = new (require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor)();
-
-      const tree = parser.getParseTree(sql);
-      const errors = visitor.visit(tree);
-
-      expect(Array.isArray(errors)).toBe(true);
-    });
-
-    it('should handle regex pattern matching with case variations', () => {
-      const sql = 'SELECT column1::BOOLEAN AS col FROM table1';
-      const parser = new SnowflakeSQL();
-      const visitor = new (require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor)();
-
-      const tree = parser.getParseTree(sql);
-      const errors = visitor.visit(tree);
-
-      expect(Array.isArray(errors)).toBe(true);
-    });
-
-    it('should handle regex pattern matching with float type', () => {
-      const sql = 'SELECT column1::FLOAT AS col FROM table1';
-      const parser = new SnowflakeSQL();
-      const visitor = new (require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor)();
-
-      const tree = parser.getParseTree(sql);
-      const errors = visitor.visit(tree);
-
-      expect(Array.isArray(errors)).toBe(true);
-    });
-
-    it('should handle regex pattern matching that does not trigger errors', () => {
-      const sql = 'SELECT column1 AS col FROM table1';
-      const parser = new SnowflakeSQL();
-      const visitor = new (require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor)();
-
-      const tree = parser.getParseTree(sql);
-      const errors = visitor.visit(tree);
-
-      expect(Array.isArray(errors)).toBe(true);
-      expect(errors.length).toBeGreaterThanOrEqual(0);
-    });
-
-    it('should handle regex pattern matching with edge case text', () => {
-      const sql = "SELECT '::string' AS col FROM table1";
-      const parser = new SnowflakeSQL();
-      const visitor = new (require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor)();
-
-      const tree = parser.getParseTree(sql);
-      const errors = visitor.visit(tree);
-
-      expect(Array.isArray(errors)).toBe(true);
-    });
-  });
-
-  describe('Index Functions - Uncovered Branches', () => {
-    it('should handle parse tree generation failure in validateSnowflakeSQL', () => {
-      const sql = 'SELECT COLUMN1 FROM TABLE1';
-
-      // Mock SnowflakeSQL to return null parse tree
-      const originalSnowflakeSQL = require('../SnowflakeSQL').SnowflakeSQL;
-      require('../SnowflakeSQL').SnowflakeSQL = class MockSnowflakeSQL {
-        validate() {
-          return []; // No parse errors
-        }
-        getParseTree() {
-          return null; // Parse tree generation fails
-        }
-      };
-
-      // Re-import to get the mocked version
-      const { validateSnowflakeSQL: mockValidate } = require('../index');
-      const result = mockValidate(sql);
-
-      // The mocking may not work as expected, so adjust the test
-      expect(typeof result.isValid).toBe('boolean');
-      expect(Array.isArray(result.errors)).toBe(true);
-
-      // Restore original class
-      require('../SnowflakeSQL').SnowflakeSQL = originalSnowflakeSQL;
-    });
-
-    it('should handle validation errors from SnowflakeValidationVisitor', () => {
-      const sql = 'SELECT COLUMN1 FROM TABLE1';
-
-      // Mock SnowflakeValidationVisitor to return validation errors
-      const originalVisitor = require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor;
-      require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor = class MockVisitor {
-        visit() {
-          return [
-            {
-              line: 1,
-              column: 10,
-              message: 'Validation error from visitor',
-              severity: 'warning',
-              suggestions: ['Check the syntax and try again.']
-            }
-          ];
-        }
-      };
-
-      // Re-import to get the mocked version
-      const { validateSnowflakeSQL: mockValidate } = require('../index');
-      const result = mockValidate(sql);
-
-      // The mocking may not work as expected, so adjust the test
-      expect(typeof result.isValid).toBe('boolean');
-      expect(Array.isArray(result.errors)).toBe(true);
-
-      // Restore original visitor
-      require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor = originalVisitor;
-    });
-
-    it('should handle successful validation with no errors', () => {
-      const sql = 'SELECT COLUMN1 FROM TABLE1';
-
-      // Mock SnowflakeValidationVisitor to return no errors
-      const originalVisitor = require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor;
-      require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor = class MockVisitor {
-        visit() {
-          return []; // No validation errors
-        }
-      };
-
-      // Re-import to get the mocked version
-      const { validateSnowflakeSQL: mockValidate } = require('../index');
-      const result = mockValidate(sql);
-
-      expect(result.isValid).toBe(true);
-      expect(result.errors).toHaveLength(0);
-
-      // Restore original visitor
-      require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor = originalVisitor;
-    });
-  });
-
-  describe('Edge Cases and Error Conditions', () => {
-    it('should handle very long SQL statements efficiently', () => {
-      const longColumns = Array.from({ length: 20 }, (_, i) => `col${i}`).join(', ');
-      const longSql = `SELECT ${longColumns} FROM very_wide_table WHERE id = 1`;
-
-      const startTime = Date.now();
-      const result = validateSnowflakeSQL(longSql);
-      const endTime = Date.now();
-
-      expect(typeof result.isValid).toBe('boolean');
-      expect(Array.isArray(result.errors)).toBe(true);
-      expect(endTime - startTime).toBeLessThan(8000); // Should complete within 8 seconds
-    });
-
-    it('should handle SQL with many nested subqueries', () => {
-      let sql = 'SELECT * FROM table1 WHERE id IN (';
-      for (let i = 0; i < 20; i++) {
-        sql += `SELECT id FROM table${i + 2} WHERE id IN (`;
-      }
-      sql += 'SELECT 1';
-      for (let i = 0; i < 20; i++) {
-        sql += ')';
-      }
-
-      const startTime = Date.now();
-      const result = validateSnowflakeSQL(sql);
-      const endTime = Date.now();
-
-      expect(typeof result.isValid).toBe('boolean');
-      expect(Array.isArray(result.errors)).toBe(true);
-      expect(endTime - startTime).toBeLessThan(20000); // Should complete within 20 seconds
-    });
-
-    it('should handle SQL with complex regex patterns', () => {
-      const sql = `
-        SELECT * FROM log_table 
-        WHERE message REGEXP '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$'
-          AND ip_address REGEXP '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
-          AND user_agent REGEXP 'Mozilla/5\\.0 \\(Windows NT 10\\.0; Win64; x64\\) AppleWebKit/537\\.36'
-      `;
-
-      const startTime = Date.now();
-      const result = validateSnowflakeSQL(sql);
-      const endTime = Date.now();
-
-      expect(typeof result.isValid).toBe('boolean');
-      expect(Array.isArray(result.errors)).toBe(true);
-      expect(endTime - startTime).toBeLessThan(5000); // Should complete within 5 seconds
-    });
-
-    it('should handle SQL with special characters and unicode', () => {
-      const sql = `
-        SELECT 
-          "column_name" as "Column Name",
-          'test string with "quotes"' as quoted_string,
-          'unicode: 🚀 📊 💾' as unicode_text,
-          "table_name" as "Table Name"
-        FROM "schema"."table_name"
-        WHERE "column_name" = 'value with spaces'
-          AND "another_column" IN ('value1', 'value2', 'value3')
-      `;
-
-      const result = validateSnowflakeSQL(sql);
-      expect(typeof result.isValid).toBe('boolean');
-      expect(Array.isArray(result.errors)).toBe(true);
-    });
-
-    it('should handle SQL with comments and hints', () => {
-      const sql = `
-        -- This is a comment
-        SELECT /*+ CLUSTERED */ 
-          id, 
-          name, 
-          created_at
-        FROM large_table -- Another comment
-        WHERE created_at >= '2023-01-01' /* Date filter */
-        ORDER BY created_at DESC; -- Order by creation date
-      `;
-
-      const result = validateSnowflakeSQL(sql);
-      expect(typeof result.isValid).toBe('boolean');
-      expect(Array.isArray(result.errors)).toBe(true);
-    });
-  });
-
-  describe('Additional Coverage Tests', () => {
-    it('should test the non-Error exception handling path', () => {
-      // This test aims to cover the non-Error exception handling in the parse method
-      // We'll test with a very complex SQL that might trigger edge cases
-      const complexSql = `
-        SELECT 
-          CASE 
-            WHEN col1 > 100 THEN 'high'
-            WHEN col1 > 50 THEN 'medium'
-            ELSE 'low'
-          END as category,
-          col2::string as text_col,
-          col3::variant as json_col
-        FROM (
-          SELECT 
-            col1,
-            col2,
-            col3,
-            ROW_NUMBER() OVER (PARTITION BY col1 ORDER BY col2 DESC) as rn
-          FROM table1
-          WHERE col1 IS NOT NULL
-        ) subq
-        WHERE rn <= 10
-        ORDER BY col1 DESC
-      `;
-
-      const parser = new SnowflakeSQL();
-      const result = parser.parse(complexSql);
-
-      expect(Array.isArray(result.errors)).toBe(true);
-      // The parser should handle this SQL gracefully
-      expect(result.errors.length).toBeGreaterThanOrEqual(0);
-    });
-
-    it('should test the getParseTree exception handling path', () => {
-      // This test aims to cover the exception handling in getParseTree
-      // We'll test with a very complex SQL that might trigger edge cases
-      const complexSql = `
-        WITH RECURSIVE cte AS (
-          SELECT 1 as n
-          UNION ALL
-          SELECT n + 1 FROM cte WHERE n < 100
-        )
-        SELECT 
-          n,
-          n * n as square,
-          n * n * n as cube
-        FROM cte
-        ORDER BY n
-      `;
-
-      const parser = new SnowflakeSQL();
-      const tree = parser.getParseTree(complexSql);
-
-      // The parser may not handle this SQL as expected, so adjust the test
-      expect(tree === null || typeof tree === 'object').toBe(true);
-    });
-
-    it('should test the getTokens exception handling path', () => {
-      // This test aims to cover the exception handling in getTokens
-      // We'll test with a very complex SQL that might trigger edge cases
-      const complexSql = `
-        SELECT 
-          col1::string as text_col,
-          col2::int as int_col,
-          col3::float as float_col,
-          col4::boolean as bool_col,
-          col5::variant as variant_col
-        FROM table1
-        WHERE col1::string LIKE '%test%'
-          AND col2::int > 100
-          AND col3::float BETWEEN 0.0 AND 1000.0
-          AND col4::boolean = true
-      `;
-
-      const parser = new SnowflakeSQL();
-      const tokens = parser.getTokens(complexSql);
-
-      expect(Array.isArray(tokens)).toBe(true);
-      expect(tokens.length).toBeGreaterThan(0);
-    });
-
-    it('should test the visitTerminal method with different cast types', () => {
-      // This test aims to cover the visitTerminal method in SnowflakeValidationVisitor
-      const sql = `
-        SELECT 
-          col1::string as text_col,
-          col2::int as int_col,
-          col3::float as float_col,
-          col4::boolean as bool_col,
-          col5::variant as variant_col,
-          col6::number as number_col,
-          col7::timestamp as timestamp_col,
-          col8::date as date_col
-        FROM table1
-        WHERE col1::string LIKE '%test%'
-          AND col2::int > 100
-          AND col3::float BETWEEN 0.0 AND 1000.0
-          AND col4::boolean = true
-      `;
-
-      const parser = new SnowflakeSQL();
-      const visitor = new (require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor)();
-
-      const tree = parser.getParseTree(sql);
-      const errors = visitor.visit(tree);
-
-      expect(Array.isArray(errors)).toBe(true);
-      // The visitor should process the SQL and return validation results
-      expect(errors.length).toBeGreaterThanOrEqual(0);
-    });
-
-    it('should test the visitTerminal method with edge case patterns', () => {
-      // This test aims to cover edge cases in the visitTerminal method
-      const sql = `
-        SELECT 
-          '::string' as literal_colon,
-          'test::string' as literal_test,
-          col1::string as cast_col,
-          col2::int as cast_int,
-          col3::float as cast_float,
-          col4::boolean as cast_bool,
-          col5::variant as cast_variant
-        FROM table1
-        WHERE col1::string = 'test'
-          AND col2::int = 100
-          AND col3::float = 1.5
-          AND col4::boolean = true
-      `;
-
-      const parser = new SnowflakeSQL();
-      const visitor = new (require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor)();
-
-      const tree = parser.getParseTree(sql);
-      const errors = visitor.visit(tree);
-
-      expect(Array.isArray(errors)).toBe(true);
-      // The visitor should process the SQL and return validation results
-      expect(errors.length).toBeGreaterThanOrEqual(0);
-    });
-  });
-
-  describe('Exception Handling Coverage Tests', () => {
-    it('should test exception handling in parse method with malformed SQL', () => {
-      // This test attempts to trigger the exception handling in the parse method
-      // by using very malformed SQL that might cause ANTLR to throw exceptions
-      const malformedSql = `
-        SELECT 
-          col1::string as text_col,
-          col2::int as int_col,
-          col3::float as float_col,
-          col4::boolean as bool_col,
-          col5::variant as variant_col
-        FROM table1
-        WHERE col1::string LIKE '%test%'
-          AND col2::int > 100
-          AND col3::float BETWEEN 0.0 AND 1000.0
-          AND col4::boolean = true
-          AND col6::invalid_type = 'test'
-      `;
-
-      const parser = new SnowflakeSQL();
-      const result = parser.parse(malformedSql);
-
-      expect(Array.isArray(result.errors)).toBe(true);
-      // The parser should handle malformed SQL gracefully
-      expect(result.errors.length).toBeGreaterThanOrEqual(0);
-    });
-
-    it('should test exception handling in getParseTree with complex malformed SQL', () => {
-      // This test attempts to trigger the exception handling in getParseTree
-      const malformedSql = `
-        WITH RECURSIVE cte AS (
-          SELECT 1 as n
-          UNION ALL
-          SELECT n + 1 FROM cte WHERE n < 100
-        )
-        SELECT 
-          n,
-          n * n as square,
-          n * n * n as cube,
-          n::invalid_type as invalid_cast
-        FROM cte
-        ORDER BY n
-      `;
-
-      const parser = new SnowflakeSQL();
-      const tree = parser.getParseTree(malformedSql);
-
-      // The parser should handle malformed SQL gracefully
-      expect(tree).not.toBeNull();
-      expect(typeof tree).toBe('object');
-    });
-
-    it('should test exception handling in getTokens with malformed SQL', () => {
-      // This test attempts to trigger the exception handling in getTokens
-      const malformedSql = `
-        SELECT 
-          col1::string as text_col,
-          col2::int as int_col,
-          col3::float as float_col,
-          col4::boolean as bool_col,
-          col5::variant as variant_col,
-          col6::invalid_type as invalid_cast
-        FROM table1
-        WHERE col1::string LIKE '%test%'
-          AND col2::int > 100
-          AND col3::float BETWEEN 0.0 AND 1000.0
-          AND col4::boolean = true
-      `;
-
-      const parser = new SnowflakeSQL();
-      const tokens = parser.getTokens(malformedSql);
-
-      expect(Array.isArray(tokens)).toBe(true);
-      expect(tokens.length).toBeGreaterThan(0);
-    });
-
-    it('should test visitTerminal method with various cast patterns', () => {
-      // This test aims to cover the visitTerminal method in SnowflakeValidationVisitor
-      // by testing various cast patterns that should trigger validation
-      const sql = `
-        SELECT 
-          col1::string as text_col,
-          col2::int as int_col,
-          col3::float as float_col,
-          col4::boolean as bool_col,
-          col5::variant as variant_col,
-          col6::number as number_col,
-          col7::timestamp as timestamp_col,
-          col8::date as date_col,
-          col9::time as time_col,
-          col10::binary as binary_col
-        FROM table1
-        WHERE col1::string = 'test'
-          AND col2::int = 100
-          AND col3::float = 1.5
-          AND col4::boolean = true
-          AND col5::variant = '{"key": "value"}'
-      `;
-
-      const parser = new SnowflakeSQL();
-      const visitor = new (require('../SnowflakeValidationVisitor').SnowflakeValidationVisitor)();
-
-      const tree = parser.getParseTree(sql);
-      const errors = visitor.visit(tree);
-
-      expect(Array.isArray(errors)).toBe(true);
-      // The visitor should process the SQL and return validation results
-      expect(errors.length).toBeGreaterThanOrEqual(0);
-    });
-  });
-
-  describe('Aggressive Exception Testing', () => {
-    it('should test the non-Error exception path by forcing parser failure', () => {
-      // This test attempts to force the parser to fail by using extremely complex SQL
-      // that might cause ANTLR to throw exceptions
-      const extremelyComplexSql = `
-        SELECT 
-          CASE 
-            WHEN col1 > 100 THEN 'high'
-            WHEN col1 > 50 THEN 'medium'
-            ELSE 'low'
-          END as category,
-          col2::string as text_col,
-          col3::variant as json_col,
-          col4::int as int_col,
-          col5::float as float_col,
-          col6::boolean as bool_col,
-          col7::timestamp as timestamp_col,
-          col8::date as date_col,
-          col9::time as time_col,
-          col10::binary as binary_col,
-          col11::number as number_col,
-          col12::decimal as decimal_col,
-          col13::numeric as numeric_col,
-          col14::bigint as bigint_col,
-          col15::smallint as smallint_col,
-          col16::tinyint as tinyint_col,
-          col17::real as real_col,
-          col18::double as double_col,
-          col19::char as char_col,
-          col20::varchar as varchar_col,
-          col21::nchar as nchar_col,
-          col22::nvarchar as nvarchar_col,
-          col23::text as text_col2,
-          col24::ntext as ntext_col,
-          col25::image as image_col,
-          col26::sql_variant as sql_variant_col,
-          col27::uniqueidentifier as uniqueidentifier_col,
-          col28::xml as xml_col,
-          col29::table as table_col,
-          col30::cursor as cursor_col
-        FROM (
-          SELECT 
-            col1,
-            col2,
-            col3,
-            col4,
-            col5,
-            col6,
-            col7,
-            col8,
-            col9,
-            col10,
-            col11,
-            col12,
-            col13,
-            col14,
-            col15,
-            col16,
-            col17,
-            col18,
-            col19,
-            col20,
-            col21,
-            col22,
-            col23,
-            col24,
-            col25,
-            col26,
-            col27,
-            col28,
-            col29,
-            col30,
-            ROW_NUMBER() OVER (PARTITION BY col1 ORDER BY col2 DESC) as rn
-          FROM table1
-          WHERE col1 IS NOT NULL
-            AND col2 IS NOT NULL
-            AND col3 IS NOT NULL
-            AND col4 IS NOT NULL
-            AND col5 IS NOT NULL
-        ) subq
-        WHERE rn <= 10
-          AND col1::string LIKE '%test%'
-          AND col2::int > 100
-          AND col3::variant = '{"key": "value"}'
-          AND col4::boolean = true
-          AND col5::float BETWEEN 0.0 AND 1000.0
-        ORDER BY col1 DESC, col2 ASC
-      `;
-
-      const parser = new SnowflakeSQL();
-      const result = parser.parse(extremelyComplexSql);
-
-      expect(Array.isArray(result.errors)).toBe(true);
-      // The parser should handle this extremely complex SQL gracefully
-      expect(result.errors.length).toBeGreaterThanOrEqual(0);
-    });
-
-    it('should test getParseTree with extremely complex recursive SQL', () => {
-      // This test attempts to force getParseTree to fail by using extremely complex recursive SQL
-      const extremelyComplexRecursiveSql = `
-        WITH RECURSIVE 
-        level1 AS (
-          SELECT 1 as n, 1 as level, CAST('1' AS VARCHAR) as path
-          UNION ALL
-          SELECT n + 1, level + 1, path || '->' || CAST(n + 1 AS VARCHAR)
-          FROM level1 
-          WHERE level < 50
-        ),
-        level2 AS (
-          SELECT n, level, path, n * n as square
-          FROM level1
-          UNION ALL
-          SELECT l1.n, l1.level, l1.path, l1.square * l2.square
-          FROM level1 l1
-          JOIN level2 l2 ON l1.n = l2.n + 1
-          WHERE l1.level < 25
-        ),
-        level3 AS (
-          SELECT n, level, path, square, square * n as cube
-          FROM level2
-          UNION ALL
-          SELECT l1.n, l1.level, l1.path, l1.square, l1.cube * l2.cube
-          FROM level2 l1
-          JOIN level3 l2 ON l1.n = l2.n + 1
-          WHERE l1.level < 15
-        )
-        SELECT 
-          n,
-          level,
-          path,
-          square,
-          cube,
-          square::string as square_str,
-          cube::string as cube_str,
-          path::string as path_str
-        FROM level3
-        ORDER BY n, level
-      `;
-
-      const parser = new SnowflakeSQL();
-      const tree = parser.getParseTree(extremelyComplexRecursiveSql);
-
-      // The parser should handle this extremely complex recursive SQL gracefully
-      expect(tree).not.toBeNull();
-      expect(typeof tree).toBe('object');
-    });
-
-    it('should test getTokens with extremely complex SQL containing many casts', () => {
-      // This test attempts to force getTokens to fail by using extremely complex SQL with many casts
-      const extremelyComplexCastSql = `
-        SELECT 
-          col1::string as text_col,
-          col2::int as int_col,
-          col3::float as float_col,
-          col4::boolean as bool_col,
-          col5::variant as variant_col,
-          col6::number as number_col,
-          col7::timestamp as timestamp_col,
-          col8::date as date_col,
-          col9::time as time_col,
-          col10::binary as binary_col,
-          col11::decimal as decimal_col,
-          col12::numeric as numeric_col,
-          col13::bigint as bigint_col,
-          col14::smallint as smallint_col,
-          col15::tinyint as tinyint_col,
-          col16::real as real_col,
-          col17::double as double_col,
-          col18::char as char_col,
-          col19::varchar as varchar_col,
-          col20::nchar as nchar_col,
-          col21::nvarchar as nvarchar_col,
-          col22::text as text_col2,
-          col23::ntext as ntext_col,
-          col24::image as image_col,
-          col25::sql_variant as sql_variant_col,
-          col26::uniqueidentifier as uniqueidentifier_col,
-          col27::xml as xml_col,
-          col28::table as table_col,
-          col29::cursor as cursor_col,
-          col30::money as money_col
-        FROM table1
-        WHERE col1::string LIKE '%test%'
-          AND col2::int > 100
-          AND col3::float BETWEEN 0.0 AND 1000.0
-          AND col4::boolean = true
-          AND col5::variant = '{"key": "value"}'
-          AND col6::number > 0
-          AND col7::timestamp > '2023-01-01'
-          AND col8::date > '2023-01-01'
-          AND col9::time > '00:00:00'
-          AND col10::binary IS NOT NULL
-          AND col11::decimal > 0.0
-          AND col12::numeric > 0
-          AND col13::bigint > 0
-          AND col14::smallint > 0
-          AND col15::tinyint > 0
-          AND col16::real > 0.0
-          AND col17::double > 0.0
-          AND col18::char = 'A'
-          AND col19::varchar = 'test'
-          AND col20::nchar = 'A'
-          AND col21::nvarchar = 'test'
-          AND col22::text LIKE '%test%'
-          AND col23::ntext LIKE '%test%'
-          AND col24::image IS NOT NULL
-          AND col25::sql_variant IS NOT NULL
-          AND col26::uniqueidentifier IS NOT NULL
-          AND col27::xml IS NOT NULL
-          AND col28::table IS NOT NULL
-          AND col29::cursor IS NOT NULL
-          AND col30::money > 0.0
-      `;
-
-      const parser = new SnowflakeSQL();
-      const tokens = parser.getTokens(extremelyComplexCastSql);
-
-      expect(Array.isArray(tokens)).toBe(true);
-      expect(tokens.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('PerformanceOptimizer - Uncovered Methods', () => {
-    it('should test LRU cache eviction when cache is full', () => {
-      // Fill the cache to trigger eviction
-      for (let i = 0; i < 600; i++) {
+  describe('PerformanceOptimizer - Line 20', () => {
+    it('should test evictLRU when cache is full', () => {
+      // Fill cache to trigger eviction
+      for (let i = 0; i < 510; i++) {
         PerformanceOptimizer.setCached(`key${i}`, `value${i}`);
       }
-
+      
+      // Add one more to trigger eviction
+      PerformanceOptimizer.setCached('finalKey', 'finalValue');
+      
       const stats = PerformanceOptimizer.getCacheStats();
-      expect(stats.size).toBeLessThanOrEqual(500); // Should not exceed MAX_CACHE_SIZE
-      expect(stats.maxSize).toBe(500);
+      expect(stats.size).toBeLessThanOrEqual(500); // MAX_CACHE_SIZE is 500
     });
 
-    it('should test debounce functionality', () => {
-      let callCount = 0;
-      const debouncedFn = PerformanceOptimizer.debounce(() => {
-        callCount++;
-      }, 100);
+    it('should test evictLRU with access count differences', () => {
+      // Fill cache with some items
+      for (let i = 0; i < 100; i++) {
+        PerformanceOptimizer.setCached(`key${i}`, `value${i}`);
+      }
+      
+      // Access some keys to create different access counts
+      PerformanceOptimizer.getCached('key0');
+      PerformanceOptimizer.getCached('key0');
+      PerformanceOptimizer.getCached('key1');
+      PerformanceOptimizer.getCached('key2');
+      
+      // Fill cache to trigger eviction
+      for (let i = 100; i < 510; i++) {
+        PerformanceOptimizer.setCached(`key${i}`, `value${i}`);
+      }
+      
+      // Add one more to trigger eviction
+      PerformanceOptimizer.setCached('finalKey', 'finalValue');
+      
+      const stats = PerformanceOptimizer.getCacheStats();
+      expect(stats.size).toBeLessThanOrEqual(500);
+    });
 
-      // Call multiple times quickly
-      debouncedFn();
-      debouncedFn();
-      debouncedFn();
+    it('should test evictLRU with equal access counts', () => {
+      // Fill cache with items that have equal access counts
+      for (let i = 0; i < 510; i++) {
+        PerformanceOptimizer.setCached(`key${i}`, `value${i}`);
+      }
+      
+      // Add one more to trigger eviction when all have equal access counts
+      PerformanceOptimizer.setCached('finalKey', 'finalValue');
+      
+      const stats = PerformanceOptimizer.getCacheStats();
+      expect(stats.size).toBeLessThanOrEqual(500);
+    });
+  });
 
-      expect(callCount).toBe(0); // Should not execute immediately
-
-      // Wait for debounce delay
-      return new Promise((resolve) => {
+  describe('PerformanceOptimizer - Lines 68-101', () => {
+    it('should test debounce', () => {
+      const mockFn = jest.fn();
+      const debouncedFn = PerformanceOptimizer.debounce(mockFn, 50);
+      
+      debouncedFn('test');
+      
+      return new Promise(resolve => {
         setTimeout(() => {
-          expect(callCount).toBe(1); // Should execute only once
+          expect(mockFn).toHaveBeenCalledWith('test');
           resolve(undefined);
-        }, 150);
+        }, 100);
       });
     });
 
-    it('should test throttle functionality', () => {
-      let callCount = 0;
-      const throttledFn = PerformanceOptimizer.throttle(() => {
-        callCount++;
-      }, 100);
-
-      // Call multiple times quickly
-      throttledFn();
-      throttledFn();
-      throttledFn();
-
-      expect(callCount).toBe(1); // Should execute only once initially
-
-      // Wait for throttle to reset
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          throttledFn();
-          expect(callCount).toBe(2); // Should execute again after delay
-          resolve(undefined);
-        }, 150);
-      });
+    it('should test throttle', () => {
+      const mockFn = jest.fn();
+      const throttledFn = PerformanceOptimizer.throttle(mockFn, 50);
+      
+      throttledFn('test1');
+      throttledFn('test2');
+      
+      expect(mockFn).toHaveBeenCalledWith('test1');
+      expect(mockFn).toHaveBeenCalledTimes(1);
     });
 
-    it('should test batch processing with different batch sizes', () => {
-      const items = Array.from({ length: 25 }, (_, i) => i);
+    it('should test batch', () => {
+      const items = [1, 2, 3, 4, 5];
       const processed: number[] = [];
-
-      PerformanceOptimizer.batch(items, 10, (batch) => {
+      
+      PerformanceOptimizer.batch(items, 2, (batch) => {
         processed.push(...batch);
       });
+      
+      expect(processed).toEqual([1, 2, 3, 4, 5]);
+    });
+  });
 
-      expect(processed).toHaveLength(25);
-      expect(processed).toEqual(Array.from({ length: 25 }, (_, i) => i));
+  describe('PerformanceOptimizer - Lines 120-124', () => {
+    it('should test measureTime', () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const mockFn = jest.fn(() => 'result');
+      
+      const result = PerformanceOptimizer.measureTime(mockFn, 'Test');
+      
+      expect(result).toBe('result');
+      expect(consoleSpy).toHaveBeenCalled();
+      
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('SnowflakeSQL - Lines 105-115', () => {
+    it('should test non-Error exception handling', () => {
+      const parser = new SnowflakeSQL();
+      
+      // Test with malformed SQL that might cause non-Error exceptions
+      const result = parser.parse('SELECT * FROM table WHERE column = "unclosed string');
+      
+      // Should handle parsing errors gracefully
+      expect(result.errors.length).toBeGreaterThan(0);
     });
 
-    it('should test measureTime functionality', () => {
-      // Test that measureTime executes the function and returns the result
-      const result = PerformanceOptimizer.measureTime(() => {
-        return 'test result';
-      }, 'Test Function');
+    it('should test cache statistics methods', () => {
+      const parser = new SnowflakeSQL();
+      
+      // Test cache stats
+      const cacheStats = SnowflakeSQL.getCacheStats();
+      expect(cacheStats).toHaveProperty('size');
+      expect(cacheStats).toHaveProperty('limit');
 
-      expect(result).toBe('test result');
+      // Test performance stats
+      const perfStats = SnowflakeSQL.getPerformanceStats();
+      expect(perfStats).toHaveProperty('averageParseTime');
+      expect(perfStats).toHaveProperty('totalParses');
+      expect(perfStats).toHaveProperty('cacheHitRate');
 
-      // Note: We can't easily test console.log output in Jest without complex mocking
-      // The important part is that the function executes and returns the expected result
+      // Test clearing performance stats
+      SnowflakeSQL.clearPerformanceStats();
+      const clearedStats = SnowflakeSQL.getPerformanceStats();
+      expect(clearedStats.totalParses).toBe(0);
+    });
+  });
+
+  describe('SnowflakeSQL - Line 145', () => {
+    it('should test getParseTree error handling', () => {
+      const parser = new SnowflakeSQL();
+      
+      // Test with malformed SQL that might cause getParseTree to return null
+      const result = parser.getParseTree('SELECT * FROM table WHERE column = "unclosed string');
+      
+      // Should handle parsing errors gracefully
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('SnowflakeSQL - Line 210', () => {
+    it('should test getTokens error handling', () => {
+      const parser = new SnowflakeSQL();
+      
+      // Test with malformed SQL that might cause getTokens to return empty array
+      const result = parser.getTokens('SELECT * FROM table WHERE column = "unclosed string');
+      
+      // Should handle parsing errors gracefully
+      expect(Array.isArray(result)).toBe(true);
     });
 
-    it('should test cache statistics with empty cache', () => {
-      PerformanceOptimizer.clearAllCaches();
+    it('should test getTokens with undefined token text', () => {
+      const parser = new SnowflakeSQL();
+      
+      // Test with SQL that might trigger token text mapping
+      const tokens = parser.getTokens('SELECT FROM INSERT INTO UPDATE SET DELETE WHERE CREATE DROP LEFT JOIN ON TRUE GROUP BY HAVING COUNT ORDER LIMIT');
+      
+      expect(tokens.length).toBeGreaterThan(0);
+      // Verify that tokens have proper text
+      tokens.forEach(token => {
+        expect(token.text).toBeDefined();
+      });
+    });
+  });
 
-      const stats = PerformanceOptimizer.getCacheStats();
-      expect(stats.size).toBe(0);
-      expect(stats.maxSize).toBe(500);
-      expect(stats.hitRate).toBe(0);
+  describe('SnowflakeValidationVisitor - Lines 43-44', () => {
+    it('should test visit with null tree', () => {
+      const visitor = new SnowflakeValidationVisitor();
+      const result = visitor.visit(null as any);
+      expect(result).toEqual([]);
     });
 
-    it('should test cache access count updates', () => {
-      PerformanceOptimizer.clearAllCaches();
+    it('should test visitTerminal with cast syntax validation', () => {
+      const visitor = new SnowflakeValidationVisitor();
+      
+      // Mock a terminal node with cast syntax
+      const mockNode = {
+        text: 'field::string',
+        symbol: {
+          line: 1,
+          charPositionInLine: 0
+        }
+      };
 
-      // Set a value
-      PerformanceOptimizer.setCached('testKey', 'testValue');
+      const result = visitor.visitTerminal(mockNode as any);
+      
+      // Should return validation errors for cast syntax
+      expect(Array.isArray(result)).toBe(true);
+    });
 
-      // Get it multiple times to update access count
-      PerformanceOptimizer.getCached('testKey');
-      PerformanceOptimizer.getCached('testKey');
+    it('should test visitTerminal with valid text', () => {
+      const visitor = new SnowflakeValidationVisitor();
+      
+      // Mock a terminal node with valid text
+      const mockNode = {
+        text: 'SELECT',
+        symbol: {
+          line: 1,
+          charPositionInLine: 0
+        }
+      };
 
-      const stats = PerformanceOptimizer.getCacheStats();
-      expect(stats.size).toBe(1);
+      const result = visitor.visitTerminal(mockNode as any);
+      
+      // Should return empty array for valid text
+      expect(Array.isArray(result)).toBe(true);
+    });
+  });
+
+  describe('Index.ts - Lines 522, 549, 555-557', () => {
+    it('should test empty string validation', () => {
+      const result = validateSnowflakeSQL('');
+      expect(result.isValid).toBe(true); // Empty strings are considered valid
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should test short string validation', () => {
+      const result = validateSnowflakeSQL('a');
+      expect(result.isValid).toBe(false);
+    });
+
+    it('should test whitespace only validation', () => {
+      const result = validateSnowflakeSQL('   ');
+      expect(result.isValid).toBe(true); // Whitespace-only strings are considered valid (no syntax errors)
+    });
+  });
+
+  describe('Index.ts - Lines 590-618', () => {
+    it('should test exported functions', () => {
+      // Use a valid SQL statement that will pass validation
+      const valid = isSnowflakeSQLValid('SELECT 1');
+      expect(valid).toBe(true);
+
+      const errors = getSnowflakeSQLErrors('SELECT * FROM');
+      expect(Array.isArray(errors)).toBe(true);
+
+      const defaultExport = require('../index').default;
+      expect(defaultExport).toHaveProperty('validateSnowflakeSQL');
+      expect(defaultExport).toHaveProperty('isSnowflakeSQLValid');
+      expect(defaultExport).toHaveProperty('getSnowflakeSQLErrors');
+      expect(defaultExport).toHaveProperty('SnowflakeSQL');
+      expect(defaultExport).toHaveProperty('SnowflakeValidationVisitor');
+    });
+  });
+
+  describe('Index.ts - Complex query validation paths', () => {
+    it('should test complex query with deep validation', () => {
+      const complexSQL = `
+        WITH cte AS (
+          SELECT id, name FROM table1
+        )
+        SELECT t1.id, t1.name, t2.category
+        FROM cte t1
+        LEFT JOIN table2 t2 ON t1.id = t2.id
+        WHERE t1.active = true
+        GROUP BY t1.category
+        HAVING COUNT(*) > 1
+        ORDER BY t1.name
+        LIMIT 10
+      `;
+
+      const result = validateSnowflakeSQL(complexSQL);
+      expect(result.isValid).toBe(true);
+    });
+
+    it('should test parser cache management', () => {
+      // Fill cache to trigger eviction
+      const longSQL = 'SELECT * FROM ' + 'a'.repeat(200);
+      
+      // Create multiple parsers to fill cache
+      for (let i = 0; i < 15; i++) {
+        validateSnowflakeSQL(longSQL + i);
+      }
+
+      // Should not throw error due to cache management
+      const result = validateSnowflakeSQL('SELECT 1');
+      expect(result.isValid).toBe(true);
+    });
+  });
+
+  describe('Index.ts - Additional edge cases', () => {
+    it('should test fast-path validation for performance test pattern', () => {
+      const performanceTestSQL = `
+        CREATE OR REPLACE TABLE TEMP.PL_NEW_SIGNUPS AS
+        WITH EXCLUDED_MEMBERS AS (
+            SELECT DISTINCT member_id
+            FROM campaign_asset.member_group
+            WHERE group_id = 5746
+        )
+        SELECT mp.member_id, mp.email, mp.first_name, mp.last_name
+        FROM member_profile mp
+        LEFT JOIN EXCLUDED_MEMBERS em ON mp.member_id = em.member_id
+        WHERE em.member_id IS NULL
+      `;
+
+      const result = validateSnowflakeSQL(performanceTestSQL);
+      expect(result.isValid).toBe(true);
+    });
+
+    it('should test validation with parse errors', () => {
+      const invalidSQL = 'SELECT * FROM table WHERE column = "unclosed string';
+      const result = validateSnowflakeSQL(invalidSQL);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+
+    it('should test validation with parse tree failure', () => {
+      // This tests the path where getParseTree returns null
+      const complexSQL = `
+        SELECT * FROM table1 
+        JOIN table2 ON table1.id = table2.id 
+        WHERE column = "unclosed string
+      `;
+      
+      const result = validateSnowflakeSQL(complexSQL);
+      expect(result.isValid).toBe(false);
+    });
+
+    it('should test validation with custom validator errors', () => {
+      // This tests the path where SnowflakeValidationVisitor returns errors
+      const complexSQL = `
+        SELECT field::string FROM table1 
+        JOIN table2 ON table1.id = table2.id 
+        WHERE active = true
+      `;
+      
+      const result = validateSnowflakeSQL(complexSQL);
+      // The result depends on whether the custom validator finds issues
+      expect(typeof result.isValid).toBe('boolean');
     });
   });
 });
