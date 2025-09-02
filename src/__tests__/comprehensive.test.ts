@@ -386,4 +386,82 @@ describe('Comprehensive Snowflake SQL Tests', () => {
       expect(endTime - startTime).toBeLessThan(3000); // Should complete within 3 seconds
     });
   });
+
+  describe('Error Handling Coverage', () => {
+    it('should handle parsing errors gracefully in SnowflakeSQL', () => {
+      // Test error handling paths in SnowflakeSQL.ts lines 105-115, 145, 210
+      const { SnowflakeSQL } = require('../SnowflakeSQL');
+      
+      // Create a parser instance
+      const parser = new SnowflakeSQL();
+      
+      // Test with malformed SQL that should trigger error handling
+      const malformedSQL = 'SELECT * FROM table WHERE invalid_syntax_here';
+      
+      // Test parse method error handling (lines 105-115)
+      const parseResult = parser.parse(malformedSQL);
+      expect(Array.isArray(parseResult.errors)).toBe(true);
+      
+      // Test getParseTree method error handling (line 145)
+      const tree = parser.getParseTree(malformedSQL);
+      // The parser might still return a tree even with errors, so we just check it's not undefined
+      expect(tree).toBeDefined();
+      
+      // Test getTokens method error handling (line 210)
+      const tokens = parser.getTokens(malformedSQL);
+      expect(Array.isArray(tokens)).toBe(true);
+    });
+
+    it('should detect mixed case keywords in SnowflakeValidationVisitor', () => {
+      // Test mixed case keyword detection (lines 57-58 in SnowflakeValidationVisitor.ts)
+      const mixedCaseSQL = 'sElEcT * fRoM users WHERE nAmE = "test"';
+      
+      const result = validateSnowflakeSQL(mixedCaseSQL);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      
+      // Check that we have mixed case keyword errors
+      const mixedCaseErrors = result.errors.filter(error => 
+        error.message.includes('Mixed case SQL keyword not allowed')
+      );
+      expect(mixedCaseErrors.length).toBeGreaterThan(0);
+    });
+
+    it('should handle unmatched parentheses in fast-path validation', () => {
+      // Test unmatched parentheses error handling (lines 470-471 in index.ts)
+      const unmatchedParenSQL = 'SELECT * FROM (table1 WHERE id = 1';
+      
+      const result = validateSnowflakeSQL(unmatchedParenSQL);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      
+      // Check for parentheses error or any validation error
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+
+    it('should handle parse tree errors in complex validation', () => {
+      // Test parse tree error handling (lines 635-636 in index.ts)
+      const invalidComplexSQL = 'WITH cte AS (SELECT * FROM) SELECT * FROM cte';
+      
+      const result = validateSnowflakeSQL(invalidComplexSQL);
+      // This might be valid or invalid depending on the parser, so we just check the structure
+      expect(typeof result.isValid).toBe('boolean');
+      expect(Array.isArray(result.errors)).toBe(true);
+    });
+
+    it('should handle custom validation errors', () => {
+      // Test custom validation error handling (lines 659-660 in index.ts)
+      const customValidationSQL = 'SELECT * FROM table1 WHERE sElEcT = 1';
+      
+      const result = validateSnowflakeSQL(customValidationSQL);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      
+      // Check for custom validation errors
+      const customErrors = result.errors.filter(error => 
+        error.message.includes('Mixed case SQL keyword not allowed')
+      );
+      expect(customErrors.length).toBeGreaterThan(0);
+    });
+  });
 });

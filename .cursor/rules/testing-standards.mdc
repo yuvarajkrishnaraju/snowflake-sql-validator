@@ -1,0 +1,149 @@
+# Testing Standards
+
+## Test Organization
+
+Reference [src/__tests__/](mdc:src/__tests__/) for test structure:
+
+- [comprehensive.test.ts](mdc:src/__tests__/comprehensive.test.ts) - Comprehensive validation tests
+- [performance.test.ts](mdc:src/__tests__/performance.test.ts) - Performance optimization tests
+- [coverage.test.ts](mdc:src/__tests__/coverage.test.ts) - Code coverage tests
+- [index.test.ts](mdc:src/__tests__/index.test.ts) - Main API tests
+
+## Test Configuration
+
+Use [jest.config.js](mdc:jest.config.js) for test setup and [tsconfig.json](mdc:tsconfig.json) for TypeScript configuration.
+
+## Case-Insensitive Testing
+
+Test case-insensitive keyword handling:
+
+```typescript
+describe('Case-insensitive SQL keywords', () => {
+  test('should accept lowercase keywords', () => {
+    expect(isSnowflakeSQLValid('select * from table1')).toBe(true);
+  });
+  
+  test('should accept uppercase keywords', () => {
+    expect(isSnowflakeSQLValid('SELECT * FROM TABLE1')).toBe(true);
+  });
+  
+  test('should reject mixed case keywords', () => {
+    expect(isSnowflakeSQLValid('sElEcT * fRoM tAbLe1')).toBe(false);
+  });
+});
+```
+
+## Performance Testing
+
+Test caching and optimization features:
+
+```typescript
+describe('Performance optimization', () => {
+  test('should cache parser instances', () => {
+    const startTime = Date.now();
+    validateSnowflakeSQL('SELECT * FROM table1');
+    const firstParse = Date.now() - startTime;
+    
+    const startTime2 = Date.now();
+    validateSnowflakeSQL('SELECT * FROM table1');
+    const secondParse = Date.now() - startTime2;
+    
+    expect(secondParse).toBeLessThan(firstParse);
+  });
+  
+  test('should track performance statistics', () => {
+    const stats = SnowflakeSQL.getPerformanceStats();
+    expect(stats.totalParses).toBeGreaterThan(0);
+    expect(stats.averageParseTime).toBeGreaterThan(0);
+  });
+});
+```
+
+## Error Handling Testing
+
+Test error reporting and validation:
+
+```typescript
+describe('Error handling', () => {
+  test('should report syntax errors with line/column info', () => {
+    const result = validateSnowflakeSQL('SELECT * FROM');
+    expect(result.isValid).toBe(false);
+    expect(result.errors[0]).toHaveProperty('startLine');
+    expect(result.errors[0]).toHaveProperty('startColumn');
+    expect(result.errors[0]).toHaveProperty('message');
+  });
+  
+  test('should provide helpful suggestions', () => {
+    const result = validateSnowflakeSQL('SELECT * FROM');
+    expect(result.errors[0]).toHaveProperty('suggestions');
+    expect(Array.isArray(result.errors[0].suggestions)).toBe(true);
+  });
+});
+```
+
+## Cache Testing
+
+Test caching behavior:
+
+```typescript
+describe('Caching behavior', () => {
+  beforeEach(() => {
+    SnowflakeSQL.clearCache();
+  });
+  
+  test('should cache normalized SQL', () => {
+    const stats1 = SnowflakeSQL.getCacheStats();
+    validateSnowflakeSQL('SELECT * FROM table1');
+    const stats2 = SnowflakeSQL.getCacheStats();
+    expect(stats2.size).toBeGreaterThan(stats1.size);
+  });
+  
+  test('should respect cache limits', () => {
+    // Fill cache beyond limit
+    for (let i = 0; i < 1100; i++) {
+      validateSnowflakeSQL(`SELECT * FROM table${i}`);
+    }
+    const stats = SnowflakeSQL.getCacheStats();
+    expect(stats.size).toBeLessThanOrEqual(stats.limit);
+  });
+});
+```
+
+## Integration Testing
+
+Test complete validation workflow:
+
+```typescript
+describe('Integration tests', () => {
+  test('should validate complex SQL with CTEs', () => {
+    const complexSQL = `
+      WITH cte1 AS (
+        SELECT * FROM table1 WHERE column1 > 10
+      )
+      SELECT * FROM cte1 JOIN table2 ON cte1.id = table2.id
+    `;
+    const result = validateSnowflakeSQL(complexSQL);
+    expect(result.isValid).toBe(true);
+  });
+  
+  test('should handle React integration', () => {
+    // Test that the library can be imported in React context
+    const { validateSnowflakeSQL } = require('../index');
+    expect(typeof validateSnowflakeSQL).toBe('function');
+  });
+});
+```
+
+## Test Best Practices
+
+- Use descriptive test names that explain the expected behavior
+- Test both positive and negative cases
+- Include performance benchmarks for optimization features
+- Test error boundaries and edge cases
+- Verify caching behavior and memory management
+- Test case-insensitive keyword handling thoroughly
+- Include integration tests for complex SQL patterns
+description:
+globs:
+alwaysApply: true
+---

@@ -6,13 +6,15 @@ A high-performance TypeScript library for validating Snowflake SQL queries with 
 
 - **🚀 High Performance**: Optimized with caching, efficient regex patterns, and Map-based lookups
 - **🔤 Case-Insensitive Keywords**: Automatically handles `select`, `SELECT`, and rejects `sElEcT`
-- **📊 Performance Monitoring**: Built-in performance tracking and cache statistics
-- **🔍 Syntax Validation**: Uses ANTLR4 grammar to validate SQL syntax
+- **📊 Performance Monitoring**: Built-in performance tracking, cache statistics, and timing information
+- **⏱️ Timing Analytics**: Detailed timing data for validation performance analysis
+- **🔍 Syntax Validation**: Uses ANTLR4 grammar to validate SQL syntax with comprehensive error detection
 - **🎯 Custom Validation Rules**: Extensible validation for Snowflake-specific features
 - **📱 TypeScript Support**: Full TypeScript definitions included
 - **⚛️ React Compatible**: Can be imported and used in React applications
 - **📝 Error Reporting**: Detailed error information with line and column numbers
 - **💾 Smart Caching**: LRU cache management with configurable limits
+- **🔧 Complex SQL Support**: Proper validation of complex queries including CTEs, JOINs, and UNIONs
 
 ## 🚀 Performance Highlights
 
@@ -21,6 +23,9 @@ A high-performance TypeScript library for validating Snowflake SQL queries with 
 - **Map-based Lexer** for fast token recognition
 - **Memory Management** with automatic cache eviction
 - **Performance Statistics** for monitoring and optimization
+- **Timing Analytics** with millisecond precision for performance analysis
+- **Fast-path Validation** for simple queries (0-2ms)
+- **Intelligent Parsing** that adapts complexity based on SQL structure
 
 ## 📦 Installation
 
@@ -102,7 +107,7 @@ export default defineConfig({
 ```typescript
 import { validateSnowflakeSQL, isSnowflakeSQLValid } from 'snowflake-sql-validator';
 
-// Validate SQL and get detailed results
+// Validate SQL and get detailed results with timing information
 const result = validateSnowflakeSQL(`
   SELECT column1, column2 
   FROM table1 
@@ -111,9 +116,16 @@ const result = validateSnowflakeSQL(`
 
 if (result.isValid) {
   console.log('SQL is valid!');
+  console.log(`Validation took ${result.timeTaken}ms`);
 } else {
   console.log('SQL has errors:', result.errors);
+  console.log(`Validation failed after ${result.timeTaken}ms`);
 }
+
+// Access timing information
+console.log('Started at:', new Date(result.startTime).toISOString());
+console.log('Completed at:', new Date(result.endTime).toISOString());
+console.log('Duration:', result.timeTaken, 'milliseconds');
 
 // Quick validation check
 const isValid = isSnowflakeSQLValid('SELECT * FROM table1');
@@ -182,6 +194,41 @@ errors.forEach(error => {
 });
 ```
 
+### Timing Analytics
+
+The library provides detailed timing information for performance analysis:
+
+```typescript
+import { validateSnowflakeSQL } from 'snowflake-sql-validator';
+
+// Validate different types of SQL queries
+const queries = [
+  'SELECT * FROM users',  // Simple query
+  'SELECT u.name, p.email FROM users u JOIN profiles p ON u.id = p.user_id',  // Complex query
+  'sElEcT * fRoM users'  // Invalid query with mixed case
+];
+
+queries.forEach((sql, index) => {
+  const result = validateSnowflakeSQL(sql);
+  
+  console.log(`\nQuery ${index + 1}:`);
+  console.log(`SQL: ${sql.substring(0, 50)}...`);
+  console.log(`Valid: ${result.isValid}`);
+  console.log(`Time taken: ${result.timeTaken}ms`);
+  console.log(`Started: ${new Date(result.startTime).toISOString()}`);
+  console.log(`Completed: ${new Date(result.endTime).toISOString()}`);
+  
+  if (result.errors.length > 0) {
+    console.log(`Errors: ${result.errors.length}`);
+  }
+});
+
+// Performance insights:
+// - Simple queries: 0-2ms (fast-path validation)
+// - Complex valid queries: 1-5ms (optimized parsing)
+// - Complex invalid queries: 1000ms+ (full ANTLR4 parsing)
+```
+
 ### Using in React Components
 
 ```typescript
@@ -230,6 +277,11 @@ const SQLValidator: React.FC = () => {
               </ul>
             </div>
           )}
+          <div style={{ marginTop: '10px', fontSize: '0.9em', color: '#666' }}>
+            <p>⏱️ Validation took: {validationResult.timeTaken}ms</p>
+            <p>🕐 Started: {new Date(validationResult.startTime).toLocaleTimeString()}</p>
+            <p>🕐 Completed: {new Date(validationResult.endTime).toLocaleTimeString()}</p>
+          </div>
         </div>
       )}
       
@@ -312,19 +364,22 @@ const result = PerformanceOptimizer.measureTime(() => {
 ### Main Functions
 
 #### `validateSnowflakeSQL(sql: string): ValidationResult`
-Main validation function that returns detailed validation results.
+Main validation function that returns detailed validation results with timing information.
 
 **Parameters:**
 - `sql: string` - The SQL string to validate
 
 **Returns:**
-- `ValidationResult` - Object containing validation status and errors
+- `ValidationResult` - Object containing validation status, errors, and timing data
 
 **Example:**
 ```typescript
 const result = validateSnowflakeSQL('SELECT * FROM table1');
 console.log(result.isValid); // true/false
 console.log(result.errors);  // Array of validation errors
+console.log(result.timeTaken); // Duration in milliseconds
+console.log(new Date(result.startTime)); // When validation started
+console.log(new Date(result.endTime)); // When validation completed
 ```
 
 #### `isSnowflakeSQLValid(sql: string): boolean`
@@ -643,6 +698,9 @@ const result = PerformanceOptimizer.measureTime(() => {
 interface ValidationResult {
   isValid: boolean;
   errors: ValidationError[];
+  startTime: number;    // Timestamp when validation started (milliseconds)
+  endTime: number;      // Timestamp when validation completed (milliseconds)
+  timeTaken: number;    // Duration of validation in milliseconds
 }
 ```
 
@@ -783,10 +841,26 @@ The package is fully functional for:
 - ✅ Case-insensitive keyword parsing
 - ✅ High-performance caching
 - ✅ Performance monitoring
+- ✅ Complex SQL validation (CTEs, JOINs, UNIONs)
+- ✅ Mixed case keyword detection and rejection
+- ✅ Timing analytics and performance insights
 
-Areas that may need attention:
-- ⚠️ ANTLR4 grammar compatibility with complex SQL
-- ⚠️ Token recognition for certain SQL patterns
+## 🆕 Recent Improvements
+
+### Enhanced Validation Accuracy
+- **Fixed Complex SQL Validation**: Complex queries (CTEs, JOINs, UNIONs) now properly go through ANTLR4 parsing
+- **Improved Mixed Case Detection**: Better detection and rejection of mixed case keywords like `sElEcT`
+- **Optimized Fast-Path Logic**: More conservative fast-path validation that doesn't compromise accuracy
+
+### New Timing Analytics
+- **Performance Monitoring**: Added `startTime`, `endTime`, and `timeTaken` to all validation results
+- **Millisecond Precision**: Detailed timing data for performance analysis and optimization
+- **Performance Insights**: Clear visibility into validation performance across different query types
+
+### Validation Performance
+- **Simple Queries**: 0-2ms (fast-path validation)
+- **Complex Valid Queries**: 1-5ms (optimized parsing)
+- **Complex Invalid Queries**: 1000ms+ (full ANTLR4 parsing with comprehensive error detection)
 
 ## 🛠️ Development
 

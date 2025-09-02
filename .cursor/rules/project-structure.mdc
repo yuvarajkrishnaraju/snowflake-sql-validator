@@ -1,0 +1,43 @@
+# Snowflake SQL Validator Project Structure
+
+## Core Architecture
+
+This is a high-performance TypeScript library for validating Snowflake SQL queries with case-insensitive keyword support. The project uses ANTLR4 grammar parsing with custom validation rules and advanced performance optimizations.
+
+## Main Entry Points
+
+- [src/index.ts](mdc:src/index.ts) - Main exports and public API functions
+- [src/SnowflakeSQL.ts](mdc:src/SnowflakeSQL.ts) - Core parser class with performance optimizations
+- [src/CaseInsensitiveSnowflakeLexer.ts](mdc:src/CaseInsensitiveSnowflakeLexer.ts) - Case-insensitive lexer implementation
+- [src/PerformanceOptimizer.ts](mdc:src/PerformanceOptimizer.ts) - Performance optimization utilities
+- [src/SnowflakeValidationVisitor.ts](mdc:src/SnowflakeValidationVisitor.ts) - Custom validation visitor
+
+## ANTLR4 Parser Files
+
+The [src/parser/snowflake/](mdc:src/parser/snowflake/) directory contains generated ANTLR4 files:
+- [SnowflakeLexer.ts](mdc:src/parser/snowflake/SnowflakeLexer.ts) - Generated lexer
+- [SnowflakeParser.ts](mdc:src/parser/snowflake/SnowflakeParser.ts) - Generated parser
+- [SnowflakeLexer.g4](mdc:src/parser/snowflake/SnowflakeLexer.g4) - Lexer grammar definition
+- [SnowflakeParser.g4](mdc:src/parser/snowflake/SnowflakeParser.g4) - Parser grammar definition
+
+## Key Features
+
+- **Performance**: 96%+ performance improvement with caching for repeated queries
+- **Case-Insensitive**: Automatically handles `select`, `SELECT`, and rejects `sElEcT`
+- **TypeScript**: Full TypeScript definitions included
+- **React Compatible**: Can be imported and used in React applications
+- **Smart Caching**: LRU cache management with configurable limits
+
+## Build Configuration
+
+- [package.json](mdc:package.json) - Project configuration and scripts
+- [tsconfig.json](mdc:tsconfig.json) - TypeScript configuration
+- [jest.config.js](mdc:jest.config.js) - Test configuration
+
+## Testing
+
+- [src/__tests__/](mdc:src/__tests__/) - Test files including comprehensive, coverage, and performance tests
+description:
+globs:
+alwaysApply: true
+---

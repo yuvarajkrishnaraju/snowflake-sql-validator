@@ -1,0 +1,47 @@
+# TypeScript Coding Standards
+
+## Type Safety
+
+- Always use strict TypeScript configuration as defined in [tsconfig.json](mdc:tsconfig.json)
+- Use explicit types for function parameters and return values
+- Avoid `any` type - use proper TypeScript interfaces and types
+- Use `interface` for object shapes and `type` for unions/intersections
+
+## Performance Patterns
+
+- Implement caching for expensive operations (see [PerformanceOptimizer.ts](mdc:src/PerformanceOptimizer.ts))
+- Use Map-based lookups for fast token recognition
+- Implement LRU cache management for memory efficiency
+- Add performance monitoring and statistics
+
+## Error Handling
+
+- Use proper error interfaces: `ValidationError`, `ParseError`
+- Include line and column numbers in error messages
+- Provide helpful suggestions in error objects
+- Use severity levels: 'error', 'warning', 'info'
+
+## Code Organization
+
+- Export main functions from [src/index.ts](mdc:src/index.ts)
+- Keep core logic in dedicated classes (SnowflakeSQL, PerformanceOptimizer)
+- Use visitor pattern for custom validation rules
+- Separate concerns: parsing, validation, performance optimization
+
+## ANTLR4 Integration
+
+- Generated ANTLR4 files are in [src/parser/snowflake/](mdc:src/parser/snowflake/)
+- Don't modify generated files directly - update grammar files instead
+- Use visitor pattern for custom validation logic
+- Handle parse tree traversal efficiently
+
+## Testing
+
+- Write comprehensive tests in [src/__tests__/](mdc:src/__tests__/)
+- Include performance tests for optimization features
+- Test case-insensitive keyword handling
+- Test caching behavior and memory management
+description:
+globs:
+alwaysApply: true
+---

@@ -4,6 +4,9 @@ import { SnowflakeValidationVisitor, ValidationError } from './SnowflakeValidati
 export interface ValidationResult {
   isValid: boolean;
   errors: ValidationError[];
+  startTime: number;
+  endTime: number;
+  timeTaken: number;
 }
 
 export type { ParseError } from './SnowflakeSQL';
@@ -18,7 +21,7 @@ const MAX_CACHE_SIZE = 10;
  * Fast-path validation for common SQL patterns without ANTLR4 parsing
  * This dramatically improves performance for most queries
  */
-function fastPathValidation(sql: string): ValidationResult | null {
+function fastPathValidation(sql: string, startTime: number): ValidationResult | null {
   const trimmedSQL = sql.trim();
 
   // Basic syntax checks that can be done quickly
@@ -74,19 +77,30 @@ function fastPathValidation(sql: string): ValidationResult | null {
       const hasValidStart = validStarts.some((start) => upperSQL.startsWith(start));
       if (!hasValidStart) return 'SQL must start with a valid statement type';
 
-      // Check for mixed case keywords that might cause parsing issues
-      const mixedCasePattern = /\b[A-Z][a-z]+[A-Z][a-z]*\b/;
-      if (mixedCasePattern.test(trimmedSQL)) {
-        // Check if they're obvious SQL keywords in mixed case
-        const mixedCaseKeywords = ['SeLeCt', 'FrOm', 'WhErE', 'InSeRt', 'UpDaTe', 'DeLeTe'];
-        const hasMixedCaseKeywords = mixedCaseKeywords.some((keyword) =>
-          trimmedSQL.toLowerCase().includes(keyword.toLowerCase())
-        );
+             // Check for mixed case keywords that might cause parsing issues
+       const sqlKeywords = [
+         'SELECT', 'FROM', 'WHERE', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP', 'ALTER',
+         'AS', 'AND', 'OR', 'INTO', 'VALUES', 'SET', 'JOIN', 'LEFT', 'RIGHT', 'INNER', 'OUTER',
+         'ON', 'GROUP', 'BY', 'ORDER', 'HAVING', 'LIMIT', 'OFFSET', 'UNION', 'ALL', 'DISTINCT',
+         'COUNT', 'SUM', 'AVG', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END', 'IS', 'NULL', 'NOT',
+         'LIKE', 'IN', 'BETWEEN', 'EXISTS', 'CAST', 'CURRENT_DATE', 'CURRENT_TIME', 'CURRENT_TIMESTAMP',
+         'TRUE', 'FALSE'
+       ];
 
-        if (hasMixedCaseKeywords) {
-          return 'Mixed case SQL keywords are not supported';
-        }
-      }
+       // Check for mixed case keywords
+       for (const keyword of sqlKeywords) {
+         const keywordRegex = new RegExp(`\\b${keyword}\\b`, 'gi');
+         const matches = trimmedSQL.match(keywordRegex);
+         if (matches) {
+           for (const match of matches) {
+             const isLowerCase = match === match.toLowerCase();
+             const isUpperCase = match === match.toUpperCase();
+             if (!isLowerCase && !isUpperCase) {
+               return `Mixed case SQL keyword not allowed: '${match}'. Use either lowercase (${match.toLowerCase()}) or uppercase (${match.toUpperCase()}).`;
+             }
+           }
+         }
+       }
 
       return null;
     },
@@ -326,6 +340,7 @@ function fastPathValidation(sql: string): ValidationResult | null {
   for (const check of basicChecks) {
     const error = check();
     if (error) {
+      const endTime = Date.now();
       return {
         isValid: false,
         errors: [
@@ -338,65 +353,75 @@ function fastPathValidation(sql: string): ValidationResult | null {
             severity: 'error' as const,
             suggestions: ['Review SQL syntax and fix the identified issue']
           }
-        ]
+        ],
+        startTime,
+        endTime,
+        timeTaken: endTime - startTime
       };
     }
   }
 
   // Enhanced CTE (WITH clause) validation
   if (trimmedSQL.toUpperCase().includes('WITH')) {
-    const cteValidation = validateCTE(trimmedSQL);
+    const cteValidation = validateCTE(trimmedSQL, startTime);
     if (cteValidation !== null) {
       return cteValidation;
     }
 
-    // Special fast-path for complex CTEs with JOINs (like in performance test)
-    if (trimmedSQL.toUpperCase().includes('JOIN')) {
-      // Check if this is the specific performance test pattern
-      if (
-        trimmedSQL.toUpperCase().includes('EXCLUDED_MEMBERS') ||
-        trimmedSQL.toUpperCase().includes('MEMBER_PROFILE')
-      ) {
-        // This is the exact pattern from the performance test - fast-path it!
-        // Return success to completely bypass ANTLR4 parsing
+    // For CTEs, let ANTLR4 handle the validation to ensure proper parsing
+    // Only use fast-path for very simple CTEs that we can validate with regex
+    const isSimpleCTE = !trimmedSQL.toUpperCase().includes('JOIN') && 
+                       !trimmedSQL.toUpperCase().includes('UNION') &&
+                       !trimmedSQL.toUpperCase().includes('CASE') &&
+                       trimmedSQL.length < 200;
+    
+    if (isSimpleCTE) {
+      // Basic CTE structure validation only
+      const ctePattern = /WITH\s+\w+\s+AS\s*\([^)]+\)\s*SELECT/i;
+      if (ctePattern.test(trimmedSQL)) {
+        const endTime = Date.now();
         return {
           isValid: true,
-          errors: []
+          errors: [],
+          startTime,
+          endTime,
+          timeTaken: endTime - startTime
         };
       }
-
-      // This is a complex CTE with JOINs, let ANTLR handle it
-      return null;
     }
-
-    // For simple CTEs without JOINs, we can validate them quickly
-    // and return success to avoid expensive ANTLR parsing
-    return {
-      isValid: true,
-      errors: []
-    };
+    
+    // For complex CTEs, let ANTLR4 handle validation
+    return null;
   }
 
-  // If all basic checks pass and the SQL is relatively simple, return success
-  // This avoids expensive ANTLR4 parsing for straightforward queries
+  // Only use fast-path for very simple queries that we can validate with regex
+  // Complex queries should go through ANTLR4 parsing for proper validation
   const isSimpleQuery =
-    trimmedSQL.length < 300 ||
-    (!trimmedSQL.includes('JOIN') &&
-      !trimmedSQL.includes('WITH') &&
-      !trimmedSQL.includes('UNION') &&
-      !trimmedSQL.includes('INTERSECT') &&
-      !trimmedSQL.includes('EXCEPT') &&
-      !trimmedSQL.includes('CASE') &&
-      !trimmedSQL.includes('UPDATE') &&
-      !trimmedSQL.includes('DELETE') &&
-      !trimmedSQL.includes('CREATE') &&
-      !trimmedSQL.includes('ALTER') &&
-      !trimmedSQL.includes('DROP'));
+    trimmedSQL.length < 150 &&
+    !trimmedSQL.includes('JOIN') &&
+    !trimmedSQL.includes('WITH') &&
+    !trimmedSQL.includes('UNION') &&
+    !trimmedSQL.includes('INTERSECT') &&
+    !trimmedSQL.includes('EXCEPT') &&
+    !trimmedSQL.includes('CASE') &&
+    !trimmedSQL.includes('UPDATE') &&
+    !trimmedSQL.includes('DELETE') &&
+    !trimmedSQL.includes('CREATE') &&
+    !trimmedSQL.includes('ALTER') &&
+    !trimmedSQL.includes('DROP') &&
+    !trimmedSQL.includes('SUBQUERY') &&
+    !trimmedSQL.includes('EXISTS') &&
+    !trimmedSQL.includes('IN') &&
+    !trimmedSQL.includes('BETWEEN');
 
   if (isSimpleQuery) {
+    const endTime = Date.now();
     return {
       isValid: true,
-      errors: []
+      errors: [],
+      startTime,
+      endTime,
+      timeTaken: endTime - startTime
     };
   }
 
@@ -407,7 +432,7 @@ function fastPathValidation(sql: string): ValidationResult | null {
 /**
  * Fast validation for CTE (WITH clause) patterns
  */
-function validateCTE(sql: string): ValidationResult | null {
+function validateCTE(sql: string, startTime: number): ValidationResult | null {
   const upperSQL = sql.toUpperCase();
 
   // Check for basic CTE structure
@@ -442,6 +467,7 @@ function validateCTE(sql: string): ValidationResult | null {
   }
 
   if (parenCount !== 0) {
+    const endTime = Date.now();
     return {
       isValid: false,
       errors: [
@@ -454,7 +480,10 @@ function validateCTE(sql: string): ValidationResult | null {
           severity: 'error' as const,
           suggestions: ['Check that all parentheses in the CTE are properly balanced']
         }
-      ]
+      ],
+      startTime,
+      endTime,
+      timeTaken: endTime - startTime
     };
   }
 
@@ -480,9 +509,13 @@ function validateCTE(sql: string): ValidationResult | null {
     }
   }
 
+  const endTime = Date.now();
   return {
     isValid: true,
-    errors: []
+    errors: [],
+    startTime,
+    endTime,
+    timeTaken: endTime - startTime
   };
 }
 
@@ -492,33 +525,25 @@ function validateCTE(sql: string): ValidationResult | null {
  * @returns A ValidationResult object indicating validity and any errors found.
  */
 export function validateSnowflakeSQL(sql: string): ValidationResult {
+  const startTime = Date.now();
+  
   // Early return for empty or very short SQL
   if (!sql || sql.trim().length === 0) {
+    const endTime = Date.now();
     return {
       isValid: true, // Empty SQL is considered valid (no syntax errors)
-      errors: []
+      errors: [],
+      startTime,
+      endTime,
+      timeTaken: endTime - startTime
     };
   }
 
-  // Ultra-fast path for the specific performance test pattern
-  const upperSQL = sql.toUpperCase();
-  if (
-    upperSQL.includes('EXCLUDED_MEMBERS') &&
-    upperSQL.includes('MEMBER_PROFILE') &&
-    upperSQL.includes('WITH') &&
-    upperSQL.includes('JOIN') &&
-    upperSQL.includes('CREATE') &&
-    upperSQL.includes('TABLE') &&
-    upperSQL.includes('AS')
-  ) {
-    // This is the exact pattern from the performance test - bypass everything!
-    return {
-      isValid: true,
-      errors: []
-    };
-  }
+  // Remove ultra-fast path to ensure all complex SQL goes through proper validation
+  // Performance optimizations should not compromise validation accuracy
 
   if (sql.trim().length < 3) {
+    const endTime = Date.now();
     return {
       isValid: false,
       errors: [
@@ -531,12 +556,15 @@ export function validateSnowflakeSQL(sql: string): ValidationResult {
           severity: 'error' as const,
           suggestions: ['Provide a valid SQL query']
         }
-      ]
+      ],
+      startTime,
+      endTime,
+      timeTaken: endTime - startTime
     };
   }
 
   // Try fast-path validation first
-  const fastResult = fastPathValidation(sql);
+  const fastResult = fastPathValidation(sql, startTime);
   if (fastResult !== null) {
     return fastResult;
   }
@@ -564,31 +592,47 @@ export function validateSnowflakeSQL(sql: string): ValidationResult {
   const parseErrors = snowflakeParser.validate(sql);
 
   if (parseErrors.length > 0) {
+    const endTime = Date.now();
     return {
       isValid: false,
       errors: parseErrors.map((err) => ({
         ...err,
         severity: 'error' as const,
         suggestions: ['Check the SQL syntax and ensure all statements are properly terminated.']
-      }))
+      })),
+      startTime,
+      endTime,
+      timeTaken: endTime - startTime
     };
   }
 
-  // Performance optimization: Skip expensive AST validation for most queries
-  // Only perform deep validation for very complex queries that might have semantic issues
+  // Always perform AST validation for complex queries to ensure proper parsing
+  // Only skip deep validation for very simple queries that have already passed basic checks
   const shouldSkipDeepValidation =
-    sql.length < 800 || (!sql.includes('JOIN') && !sql.includes('WITH') && !sql.includes('UNION'));
+    sql.length < 200 && 
+    !sql.includes('JOIN') && 
+    !sql.includes('WITH') && 
+    !sql.includes('UNION') &&
+    !sql.includes('CASE') &&
+    !sql.includes('EXISTS') &&
+    !sql.includes('IN') &&
+    !sql.includes('BETWEEN');
 
   if (shouldSkipDeepValidation) {
+    const endTime = Date.now();
     return {
       isValid: true,
-      errors: []
+      errors: [],
+      startTime,
+      endTime,
+      timeTaken: endTime - startTime
     };
   }
 
   // Step 2: If no initial parse errors and query is complex, proceed with custom AST-based validation
   const tree = snowflakeParser.getParseTree(sql);
   if (!tree) {
+    const endTime = Date.now();
     return {
       isValid: false,
       errors: [
@@ -601,7 +645,10 @@ export function validateSnowflakeSQL(sql: string): ValidationResult {
           severity: 'error' as const,
           suggestions: ['Check if the SQL input is valid and try parsing again.']
         }
-      ]
+      ],
+      startTime,
+      endTime,
+      timeTaken: endTime - startTime
     };
   }
 
@@ -609,15 +656,23 @@ export function validateSnowflakeSQL(sql: string): ValidationResult {
   const validationErrors = customValidator.visit(tree);
 
   if (validationErrors.length > 0) {
+    const endTime = Date.now();
     return {
       isValid: false,
-      errors: validationErrors
+      errors: validationErrors,
+      startTime,
+      endTime,
+      timeTaken: endTime - startTime
     };
   }
 
+  const endTime = Date.now();
   return {
     isValid: true,
-    errors: []
+    errors: [],
+    startTime,
+    endTime,
+    timeTaken: endTime - startTime
   };
 }
 

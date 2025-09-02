@@ -1,0 +1,97 @@
+# Performance Optimization Guidelines
+
+## Caching Strategy
+
+Reference [PerformanceOptimizer.ts](mdc:src/PerformanceOptimizer.ts) for caching implementation:
+
+### LRU Cache Management
+- Use Map-based LRU cache with configurable limits
+- Implement automatic cache eviction for memory management
+- Monitor cache hit rates and performance statistics
+- Clear caches periodically in long-running applications
+
+### Parser Instance Caching
+- Cache SnowflakeSQL parser instances for repeated use
+- Limit cache size to prevent memory leaks
+- Use SQL hash as cache key for efficient lookups
+
+## Fast-Path Validation
+
+Reference [src/index.ts](mdc:src/index.ts) for fast-path implementation:
+
+### Performance Targets
+- **First parse**: ~660ms (cache miss)
+- **Subsequent parses**: ~25ms (cache hit)
+- **Performance improvement**: 96%+ faster with caching
+
+### Optimization Techniques
+- Skip expensive ANTLR4 parsing for simple queries
+- Use regex patterns for quick syntax validation
+- Implement early returns for obvious errors
+- Cache normalized SQL strings
+
+## Batch Processing
+
+Use [PerformanceOptimizer.ts](mdc:src/PerformanceOptimizer.ts) for batch operations:
+
+```typescript
+// Batch processing for multiple operations
+const items = Array.from({ length: 1000 }, (_, i) => `select * from table${i}`);
+PerformanceOptimizer.batch(items, 100, (batch) => {
+  batch.forEach(sql => {
+    // Process each SQL statement
+  });
+});
+```
+
+## Debouncing and Throttling
+
+Implement user input optimization:
+
+```typescript
+// Debounced function calls
+const debouncedValidation = PerformanceOptimizer.debounce((sql: string) => {
+  console.log('Validating:', sql);
+}, 300);
+
+// Throttled function calls
+const throttledValidation = PerformanceOptimizer.throttle((sql: string) => {
+  console.log('Throttled validation:', sql);
+}, 1000);
+```
+
+## Memory Management
+
+- Monitor cache statistics: `SnowflakeSQL.getCacheStats()`
+- Clear caches when needed: `SnowflakeSQL.clearCache()`
+- Track performance metrics: `SnowflakeSQL.getPerformanceStats()`
+- Implement automatic cache eviction for long-running applications
+
+## Performance Monitoring
+
+Use built-in performance tracking:
+
+```typescript
+// Get performance statistics
+const perfStats = SnowflakeSQL.getPerformanceStats();
+console.log('Average parse time:', perfStats.averageParseTime, 'ms');
+console.log('Total parses:', perfStats.totalParses);
+
+// Get cache statistics
+const cacheStats = SnowflakeSQL.getCacheStats();
+console.log('Cache size:', cacheStats.size);
+console.log('Cache limit:', cacheStats.limit);
+```
+
+## Optimization Best Practices
+
+- Reuse parser instances when possible
+- Use fast-path validation for simple queries
+- Implement proper error boundaries
+- Monitor memory usage and cache hit rates
+- Use batch processing for multiple operations
+- Leverage debouncing for user input validation
+description:
+globs:
+alwaysApply: true
+---

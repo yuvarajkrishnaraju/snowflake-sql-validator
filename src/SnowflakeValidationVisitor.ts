@@ -35,6 +35,41 @@ export class SnowflakeValidationVisitor extends SnowflakeVisitor<ValidationError
     // This is a very simplistic check. In a real scenario, you would analyze the context of the terminal node.
     const text = node.text;
 
+    // Check for mixed-case SQL keywords (e.g., sElEcT, fRoM)
+    const sqlKeywords = [
+      'SELECT', 'FROM', 'WHERE', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP', 'ALTER',
+      'AS', 'AND', 'OR', 'INTO', 'VALUES', 'SET', 'JOIN', 'LEFT', 'RIGHT', 'INNER', 'OUTER',
+      'ON', 'GROUP', 'BY', 'ORDER', 'HAVING', 'LIMIT', 'OFFSET', 'UNION', 'ALL', 'DISTINCT',
+      'COUNT', 'SUM', 'AVG', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END', 'IS', 'NULL', 'NOT',
+      'LIKE', 'IN', 'BETWEEN', 'EXISTS', 'CAST', 'CURRENT_DATE', 'CURRENT_TIME', 'CURRENT_TIMESTAMP',
+      'TRUE', 'FALSE'
+    ];
+
+    const upperText = text.toUpperCase();
+    const isKeyword = sqlKeywords.includes(upperText);
+    
+    if (isKeyword) {
+      const isLowerCase = text === text.toLowerCase();
+      const isUpperCase = text === text.toUpperCase();
+      
+      if (!isLowerCase && !isUpperCase) {
+        // Mixed case keyword detected
+        const symbol = node.symbol;
+        this.errors.push({
+          startLine: symbol.line,
+          endLine: symbol.line,
+          startColumn: symbol.charPositionInLine,
+          endColumn: symbol.charPositionInLine + text.length - 1,
+          message: `Mixed case SQL keyword not allowed: '${text}'. Use either lowercase (${text.toLowerCase()}) or uppercase (${text.toUpperCase()}).`,
+          severity: 'error',
+          suggestions: [
+            `Use '${text.toLowerCase()}' for lowercase`,
+            `Use '${text.toUpperCase()}' for uppercase`
+          ]
+        });
+      }
+    }
+
     // Example: Check for `::string` or `::variant` like casts after an identifier, typical in Snowflake JSON access
     if (/(?<!::)\b\w+::(string|variant|int|float|boolean)\b/i.test(text)) {
       // This is a basic regex. A proper check would involve checking the parse tree structure.

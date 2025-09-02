@@ -78,12 +78,23 @@ export class CaseInsensitiveSnowflakeLexer extends SnowflakeLexer {
       const keywordType = CaseInsensitiveSnowflakeLexer.keywordMap.get(text);
 
       if (keywordType) {
-        // Only convert to keyword token if the original text was completely lowercase
-        if (token.text === token.text.toLowerCase()) {
-          // Create a new token with the updated type
+        // Check if the text is a valid case pattern for SQL keywords
+        const isLowerCase = token.text === token.text.toLowerCase();
+        const isUpperCase = token.text === token.text.toUpperCase();
+        
+        if (isLowerCase || isUpperCase) {
+          // Valid case pattern - convert to keyword token
           const newToken = {
             ...token,
             type: keywordType
+          };
+          return newToken as Token;
+        } else {
+          // Mixed case keywords are not allowed - keep as identifier but mark as invalid
+          // This will be caught by the validation visitor
+          const newToken = {
+            ...token,
+            type: SnowflakeLexer.ID // Keep as identifier but with mixed case
           };
           return newToken as Token;
         }

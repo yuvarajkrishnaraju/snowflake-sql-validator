@@ -1,0 +1,76 @@
+# SQL Validation Patterns
+
+## Case-Insensitive Keyword Handling
+
+The library automatically handles case-insensitive SQL keywords. Reference [CaseInsensitiveSnowflakeLexer.ts](mdc:src/CaseInsensitiveSnowflakeLexer.ts) for implementation details.
+
+### Supported Patterns
+- ✅ `select column1 from table1` (lowercase)
+- ✅ `SELECT COLUMN1 FROM TABLE1` (uppercase)  
+- ✅ `Select Column1 From Table1` (title case)
+- ❌ `sElEcT cOlUmN1 fRoM tAbLe1` (mixed case)
+
+### Implementation Guidelines
+- Use Map-based lookups for fast keyword recognition
+- Preserve identifier case (MyColumn, MyTable stay as-is)
+- Reject mixed-case keywords that could cause parsing issues
+- Cache normalized SQL for performance
+
+## Fast-Path Validation
+
+Reference [src/index.ts](mdc:src/index.ts) for fast-path validation implementation:
+
+### Basic Checks
+- Balanced parentheses and quotes
+- Valid SQL statement starts (SELECT, INSERT, UPDATE, etc.)
+- Missing FROM clauses in SELECT statements
+- Duplicate keywords detection
+- Basic syntax structure validation
+
+### Performance Optimization
+- Skip expensive ANTLR4 parsing for simple queries
+- Use regex patterns for quick syntax validation
+- Cache parser instances for repeated use
+- Implement LRU cache management
+
+## Error Reporting
+
+Use consistent error interfaces defined in [SnowflakeValidationVisitor.ts](mdc:src/SnowflakeValidationVisitor.ts):
+
+```typescript
+interface ValidationError {
+  startLine: number;
+  endLine: number;
+  startColumn: number;
+  endColumn: number;
+  message: string;
+  severity: 'error' | 'warning' | 'info';
+  suggestions: string[];
+}
+```
+
+## Custom Validation Rules
+
+Extend [SnowflakeValidationVisitor.ts](mdc:src/SnowflakeValidationVisitor.ts) for custom validation:
+
+```typescript
+class CustomValidationVisitor extends SnowflakeValidationVisitor {
+  visitTerminal(node: any): any[] {
+    const errors = super.visitTerminal(node);
+    // Add custom validation logic here
+    return errors;
+  }
+}
+```
+
+## Performance Considerations
+
+- Cache normalized SQL strings to avoid repeated processing
+- Use batch processing for multiple SQL statements
+- Implement debouncing for user input validation
+- Monitor cache hit rates and memory usage
+- Clear caches periodically in long-running applications
+description:
+globs:
+alwaysApply: true
+---

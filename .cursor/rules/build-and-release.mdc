@@ -1,0 +1,102 @@
+# Build and Release Management
+
+## Build Configuration
+
+Reference [package.json](mdc:package.json) for build scripts and [tsconfig.json](mdc:tsconfig.json) for TypeScript configuration.
+
+### Build Scripts
+- `npm run build` - Build the package
+- `npm run build:watch` - Watch mode for development
+- `npm run clean` - Clean build artifacts
+- `npm run type-check` - TypeScript type checking
+
+### Quality Assurance
+- `npm run lint` - ESLint checking
+- `npm run lint:fix` - Auto-fix linting issues
+- `npm run check-all` - Run all quality checks
+- `npm run test` - Run tests
+- `npm run test:watch` - Watch mode for tests
+
+## Release Management
+
+Reference [RELEASE.md](mdc:RELEASE.md) for detailed release process.
+
+### Version Management
+- `npm run version:patch` - Bump patch version (1.0.0 → 1.0.1)
+- `npm run version:minor` - Bump minor version (1.0.0 → 1.1.0)
+- `npm run version:major` - Bump major version (1.0.0 → 2.0.0)
+
+### Release Process
+- `npm run release:patch` - Complete patch release
+- `npm run release:minor` - Complete minor release
+- `npm run release:major` - Complete major release
+- `npm run release:preview` - Preview release (beta)
+
+### Changelog Generation
+- `npm run changelog` - Generate changelog
+- `npm run changelog:first` - Generate initial changelog
+
+## Package Configuration
+
+### Main Entry Points
+- Main: `./dist/index.js`
+- Module: `./dist/index.js`
+- Types: `./dist/index.d.ts`
+
+### Exports Configuration
+```json
+{
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  }
+}
+```
+
+### Peer Dependencies
+Required for React applications:
+- `process` - Process information and environment variables
+- `util` - Utility functions for formatting and debugging
+- `assert` - Assertion testing for validation logic
+
+## Development Workflow
+
+### Pre-commit Hooks
+- `npm run pre-commit` - Run all checks before commit
+- `npm run format:staged` - Format staged files
+- `npm run format:check` - Check formatting
+
+### Testing Strategy
+- Unit tests for core functionality
+- Performance tests for optimization features
+- Integration tests for complex SQL patterns
+- Coverage tests for code quality
+
+### Build Artifacts
+- `dist/` - Compiled JavaScript and TypeScript declarations
+- `coverage/` - Test coverage reports
+- Source maps for debugging
+
+## Deployment Considerations
+
+### React Integration
+- Ensure peer dependencies are installed
+- Configure bundler polyfills for Node.js modules
+- Test in React development environment
+
+### Performance Monitoring
+- Monitor cache hit rates in production
+- Track memory usage patterns
+- Implement proper error boundaries
+
+### Documentation
+- Keep [README.md](mdc:README.md) updated with usage examples
+- Maintain [CHANGELOG.md](mdc:CHANGELOG.md) for version history
+- Update [INSTALLATION.md](mdc:INSTALLATION.md) for setup instructions
+description:
+globs:
+alwaysApply: true
+---
